@@ -44,6 +44,10 @@ export function ImagesForm() {
       setUploadError(`Keep it under ${MAX_IMAGES} images.`);
       return;
     }
+    // Thread the draft id through the loop locally — React state updates
+    // don't reach this closure mid-batch, and every file must attach to
+    // the SAME draft row (the publish route rejects mixed ownership).
+    let qrCodeId = state.qrCodeId;
     for (let i = 0; i < list.length; i++) {
       setUploading({ current: i + 1, total: list.length, percent: 0 });
       try {
@@ -51,10 +55,11 @@ export function ImagesForm() {
           file: list[i],
           assetType: "image",
           qrType: "images",
-          qrCodeId: state.qrCodeId,
+          qrCodeId,
           sortOrder: data.images.length + i,
           onProgress: (percent) => setUploading({ current: i + 1, total: list.length, percent }),
         });
+        qrCodeId = result.qrCodeId;
         registerQrCodeId(result.qrCodeId);
         const current = contentRef.current;
         if (current?.type === "images") {

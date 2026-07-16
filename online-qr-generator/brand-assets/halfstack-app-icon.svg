@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 172 172">
+  <!-- Halfstack app icon — exact geometry from the Halfstack Design System ("App icon") -->
+  <!-- Ink background #1B1B2F, rounded square (rx 22 on a 172 grid), four-bar stack: -->
+  <!-- top half white (the full stack), lower half accent blue (the half you save) -->
+  <rect width="172" height="172" rx="22" fill="#1B1B2F"/>
+  <svg x="40" y="40" width="92" height="92" viewBox="0 0 100 100">
+    <rect x="18" y="14" width="64" height="12" rx="6" fill="#FFFFFF"/>
+    <rect x="18" y="34" width="64" height="12" rx="6" fill="#FFFFFF"/>
+    <rect x="18" y="54" width="64" height="12" rx="6" fill="#6E86FF"/>
+    <rect x="18" y="74" width="64" height="12" rx="6" fill="#6E86FF"/>
+  </svg>
+</svg>

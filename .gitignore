@@ -1,0 +1,14 @@
+# Environment — never commit secrets
+.env
+.env.local
+.env.*.local
+
+# Dependencies / build output
+node_modules/
+.next/
+out/
+
+# Logs & OS noise
+*.log
+.DS_Store
+Thumbs.db

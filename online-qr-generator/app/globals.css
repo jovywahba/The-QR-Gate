@@ -1,0 +1,164 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ───────────────────────────────────────────────────────────────
+   Halfstack Design System v1.0 — tokens
+   One accent (electric blue), two neutrals, nothing else.
+   Primary = ink. The blue is rationed to links/focus/selected.
+   Keep in sync with "Halfstack Design System/Halfstack Design System.dc.html".
+   ─────────────────────────────────────────────────────────────── */
+:root {
+  --radius: 0.5rem;
+
+  --background: #fafaf8;
+  --foreground: #1b1b2f;
+  --card: #ffffff;
+  --card-foreground: #1b1b2f;
+  --popover: #ffffff;
+  --popover-foreground: #1b1b2f;
+  --primary: #1b1b2f;
+  --primary-foreground: #fafaf8;
+  --secondary: #f5f3ee;
+  --secondary-foreground: #1b1b2f;
+  --muted: #f1eee8;
+  --muted-foreground: #6b675c;
+  --accent: #3b5bff;
+  --accent-foreground: #ffffff;
+  --destructive: #c2392f;
+  --destructive-foreground: #ffffff;
+  --border: #e6e3db;
+  --input: #e6e3db;
+  --ring: #3b5bff;
+
+  --chart-1: #3b5bff;
+  --chart-2: #1b1b2f;
+  --chart-3: #6b675c;
+  --chart-4: #9a968a;
+  --chart-5: #b9c2ff;
+
+  --sidebar: #f2efe9;
+  --sidebar-foreground: #1b1b2f;
+  --sidebar-primary: #1b1b2f;
+  --sidebar-primary-foreground: #fafaf8;
+  --sidebar-accent: #ece8e0;
+  --sidebar-accent-foreground: #1b1b2f;
+  --sidebar-border: #e6e3db;
+  --sidebar-ring: #3b5bff;
+
+  /* marketing / brand backgrounds ONLY — never app surfaces */
+  --paper: #f5f3ee;
+}
+
+.dark {
+  --background: #141422;
+  --foreground: #f3f1ea;
+  --card: #1c1c2c;
+  --card-foreground: #f3f1ea;
+  --popover: #1c1c2c;
+  --popover-foreground: #f3f1ea;
+  --primary: #f3f1ea;
+  --primary-foreground: #1b1b2f;
+  --secondary: #262638;
+  --secondary-foreground: #f3f1ea;
+  --muted: #232334;
+  --muted-foreground: #a9a596;
+  --accent: #6e86ff;
+  --accent-foreground: #0e0e18;
+  --destructive: #e2574b;
+  --destructive-foreground: #ffffff;
+  --border: #2a2a3c;
+  --input: #2a2a3c;
+  --ring: #6e86ff;
+
+  --chart-1: #6e86ff;
+  --chart-2: #f3f1ea;
+  --chart-3: #a9a596;
+  --chart-4: #6b675c;
+  --chart-5: #3b5bff;
+
+  --sidebar: #181826;
+  --sidebar-foreground: #f3f1ea;
+  --sidebar-primary: #f3f1ea;
+  --sidebar-primary-foreground: #1b1b2f;
+  --sidebar-accent: #262638;
+  --sidebar-accent-foreground: #f3f1ea;
+  --sidebar-border: #2a2a3c;
+  --sidebar-ring: #6e86ff;
+
+  --paper: #141422;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-paper: var(--paper);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --font-sans: var(--font-geist), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  /* Anchored sections clear the sticky header when scrolled to. */
+  section[id] {
+    scroll-margin-top: 5rem;
+  }
+  /* Numerics and labels lean on the mono face per the design system. */
+  ::selection {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+  }
+}
+
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

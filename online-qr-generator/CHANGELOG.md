@@ -1,0 +1,16 @@
+# Template Changelog
+
+Every change to `_template/` (code, tokens, billing, auth) gets a dated line here so we can reason about drift across already-built apps. See `CLAUDE.md` §7.
+
+Format: `YYYY-MM-DD · [design vX.Y | template] what changed · backport? (which live apps need it)`
+
+## Unreleased
+- 2026-06-19 · [design v2.0 | template] Rebrand **Tenth → Halfstack** ("Full Stack, Half Price"). Logo: X monogram → four-bar **stack mark** (`HalfstackMark`/`HalfstackEndorser`, `app/icon.svg`, `brand-assets/`). Positioning: one-tenth → half (`site.ts` defaults $12→$60, comparison tables, marketing copy, root §11 rule). Tokens/type/spacing/color **unchanged**. Full spec consolidated in `Halfstack Design System/` (v2.0). Backport? n/a — no live apps yet.
+- 2026-06-18 · [design v1.1 | template] v1.1 component essentials added to `components/ui/` (shadcn new-york, customized to Halfstack): alert, alert-dialog, avatar, checkbox, dialog, dropdown-menu, radio-group, select, separator, sheet, skeleton, sonner (toast), switch, table, tabs, textarea, tooltip. New deps `radix-ui` + `sonner`. Halfstack tweaks: checkbox/switch/radio selected = rationed accent; sonner themed to `--popover`, decoupled from next-themes. New app-shell: `user-menu` (avatar + dropdown with **sign-out**), `app-nav` (shared nav), `app-mobile-topbar` (Sheet mobile nav), `stat-card` (signature metric card). Root layout mounts `TooltipProvider` + `Toaster`; app layout adds mobile nav; dashboard uses `StatCard`. Shared Halfstack marks added at `brand-assets/`. v1.1 files use unified `radix-ui` + `data-slot` (original five unchanged, keep `// Halfstack:` markers). Backport? optional/additive — no live apps yet.
+- 2026-06-17 · [template] Modular landing page added: hero (with product-preview frame), social-proof, comparison, feature grid, how-it-works, pricing card, FAQ (native `<details>`), CTA band — all driven by `lib/landing.ts`. Shared `PricingCard` used by landing + `/pricing`. Halfstack endorser touchpoints formalized (hero eyebrow, footer, auth, about, metadata `creator`/`publisher`). PROJECT.md gained the post-launch growth checklist (see `docs/GROWTH.md`).
+- 2026-06-17 · [template] Initial scaffold built & type-checked (tsc clean): Next 15 + React 19 + Tailwind v4 + shadcn (new-york/stone/0.5rem) wired to Design System v1.0 tokens; Supabase auth (email+password) + RLS migration; Stripe trial Checkout + verified webhook + portal; Resend; marketing site (landing, pricing, alternatives/[slug], about, blog, docs, status, legal) + product shell; Vercel Analytics. `lib/site.ts` is the per-app config seam.
+
+## Design System
+- v1.0 — initial token set (see `Halfstack Design System/`).
+- v1.1 — additive: components, page patterns, system-level rules (tokens/type/spacing/color unchanged from v1.0). Essentials built into `_template`; full spec in `Halfstack Design System/` (`*v1.1*`). Deferred to per-product: charts, calendar/date-picker, command palette, popover, accordion, breadcrumb, pagination, combobox, slider, input-OTP, file upload.
+- v2.0 — Halfstack rebrand (name + logo + half-price positioning); tokens/type/spacing/color unchanged from v1.1. Single consolidated spec file `Halfstack Design System.dc.html`.

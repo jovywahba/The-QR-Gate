@@ -1,14 +1,29 @@
-# Environment — never commit secrets
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+
+# production
+/build
+
+# env — never commit real secrets
 .env
-.env.local
-.env.*.local
+.env*.local
 
-# Dependencies / build output
-node_modules/
-.next/
-out/
+# vercel
+.vercel
 
-# Logs & OS noise
-*.log
+# typescript / misc
+*.tsbuildinfo
 .DS_Store
-Thumbs.db
+*.log
+
+# supabase local
+/supabase/.branches
+/supabase/.temp
+.env*

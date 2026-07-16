@@ -114,16 +114,18 @@
 - **Part 2 (code complete):** all 16 content forms, direct QRs for Facebook /
   Instagram / URL-mode Video / MP3 / Menu (decode-verified), full Supabase
   publishing stack (`supabase/migrations/0001_qr_codes.sql`, storage buckets,
-  upload + publish APIs, `/q/[slug]` public pages). ⚠️ **Blocked on provisioning:**
-  hosted publishing is NOT verified — needs a real Supabase project (creds in
-  `.env.local`, `pnpm db:push`) before it can be called working.
+  upload + publish APIs, `/q/[slug]` public pages). ✅ **Live-verified 2026-07-17**
+  against the real Supabase project (ref `kxlqvzhvpnuqrzwubycs`): 23/23 RLS/storage
+  security checks, all 10 hosted types published E2E, QR/PNG/SVG decoded,
+  republish-same-slug + archive-404 confirmed.
 - **Part 3 (done):** full design editor (patterns, corners, colors/gradients, local
   logo w/ forced EC-H, margin), readability gating, single render pipeline shared by
   preview + export. Styled outputs independently decoded (jsQR + ZXing).
-- **Part 4 (code complete):** PNG 512/1024/2048 + real vector SVG export (all
+- **Part 4 (done, live-verified):** PNG 512/1024/2048 + real vector SVG export (all
   decode-verified), Step-4 experience, QR dashboard w/ archive/restore, secure
-  edit-existing flow. ⚠️ Live Supabase verification still blocked on real creds —
-  runbook: fill `.env.local` → `pnpm db:push` → `pnpm verify:supabase` → hosted E2E.
+  edit-existing flow. Supabase schema applied via `SUPABASE_FULL_SETUP.sql`;
+  `pnpm verify:supabase` 23/23; hosted E2E green for all 10 types.
+- Code pushed to `github.com/jovywahba/The-QR-Gate` (standalone export of this app).
 - Accounts (Gmail/Supabase/domain/Stripe/Vercel) **not provisioned yet** — Part 1
   works entirely client-side by design.
 - WiFi passwords are never persisted or logged (memory-only; drafts redact them).

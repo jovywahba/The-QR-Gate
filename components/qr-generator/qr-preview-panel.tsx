@@ -6,8 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PhoneFrame } from "@/components/qr-preview/kit";
 import { MobileDestination } from "@/components/qr-preview/screens";
+import { demoFixtureFor } from "@/lib/qr/demo-fixtures";
 import { getQRType } from "@/lib/qr/registry";
-import { sampleContentFor } from "@/lib/qr/sample-previews";
 import type { QRContent, QRType } from "@/lib/qr/types";
 import { useHoveredType } from "./hover-preview";
 import { useQRWizard } from "./use-qr-wizard";
@@ -34,38 +34,48 @@ function MobilePagePreview() {
   const { state } = useQRWizard();
   const hovered = useHoveredType();
 
-  // previewType = hovered ?? selected/live ?? default(website).
-  // Hover only happens on Step 1, so live form data (Steps 2–4) is
-  // never overridden. Hover never touches URL or draft state.
+  // Two explicit modes:
+  //  - Demo  (homepage hover, or the default before any selection): a
+  //    real Live-demo fixture, always badged "Live demo".
+  //  - User  (a type is selected + content exists): only the user's real
+  //    data, with honest empty states — no demo values leak in.
+  // Hover only happens on Step 1, so user data (Steps 2–4) is never
+  // overridden, and hover never touches URL or draft state.
   let content: QRContent;
-  let sample: boolean;
+  let demo: boolean;
   if (hovered) {
-    content = sampleContentFor(hovered);
-    sample = true;
+    content = demoFixtureFor(hovered);
+    demo = true;
   } else if (state.content) {
     content = state.content;
-    sample = false;
+    demo = false;
   } else {
-    content = sampleContentFor(DEFAULT_PREVIEW_TYPE);
-    sample = true;
+    content = demoFixtureFor(DEFAULT_PREVIEW_TYPE);
+    demo = true;
   }
   const typeName = getQRType(content.type).name;
 
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between px-0.5">
-        <span className="font-mono text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
-          {sample ? "Sample" : "Live preview"}
-        </span>
+        {demo ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 font-mono text-[10px] font-semibold tracking-[0.1em] text-accent uppercase">
+            <span className="size-1.5 rounded-full bg-accent" /> Live demo
+          </span>
+        ) : (
+          <span className="font-mono text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
+            Live preview
+          </span>
+        )}
         <span className="text-[11px] font-medium text-muted-foreground">{typeName}</span>
       </div>
       <PhoneFrame>
         {/* Only the screen content cross-fades — the frame stays put. */}
         <div
-          key={content.type + String(sample)}
+          key={content.type + String(demo)}
           className="min-h-full animate-in fade-in-0 slide-in-from-bottom-1 duration-200 motion-reduce:animate-none"
         >
-          <MobileDestination content={content} sample={sample} />
+          <MobileDestination content={content} />
         </div>
       </PhoneFrame>
     </div>

@@ -3,35 +3,39 @@
 import * as React from "react";
 import {
   Apple,
-  BadgeCheck,
   ChevronRight,
   Clock,
   Copy,
-  Download,
-  ExternalLink,
-  FileText,
+  Eye,
+  EyeOff,
   Globe,
-  Images as ImagesIcon,
+  Instagram as InstagramIcon,
   Lock,
   Mail,
   MapPin,
   MessageCircle,
+  Music,
   Navigation,
-  Pause,
   Phone,
   Play,
   ShieldCheck,
-  SkipBack,
-  SkipForward,
   Ticket,
   UserPlus,
   UtensilsCrossed,
-  Volume2,
   Wifi,
+  type LucideIcon,
 } from "lucide-react";
 import { SOCIAL_ICONS } from "@/components/qr-public/shared";
 import { couponDiscountLabel, isCouponExpired } from "@/lib/qr/coupon";
-import { cleanWhatsAppPhone, normalizeFacebookUrl, normalizeInstagramInput } from "@/lib/qr/payloads";
+import { buildVCardPayload } from "@/lib/qr/payloads";
+import { videoEmbed } from "@/lib/qr/preview-capabilities";
+import {
+  buildWhatsAppPayload,
+  cleanWhatsAppPhone,
+  normalizeFacebookUrl,
+  normalizeInstagramInput,
+  normalizeUrl,
+} from "@/lib/qr/payloads";
 import type {
   AppsContent,
   BusinessContent,
@@ -51,146 +55,104 @@ import type {
   WhatsAppContent,
   WiFiContent,
 } from "@/lib/qr/types";
-import { cn } from "@/lib/utils";
-import {
-  Avatar,
-  Body,
-  Chip,
-  Field,
-  GhostBtn,
-  Hero,
-  IconAction,
-  Metric,
-  PrimaryBtn,
-  SectionLabel,
-  Stars,
-} from "./kit";
+import { Avatar, Body, Field, GhostBtn, Hero, IconAction, PrimaryBtn } from "./kit";
+import { FacebookEmbed, VimeoEmbed, YouTubeEmbed, facebookPluginUrl } from "./official-embed";
+import { AudioPlayer, VideoPlayer, useMediaDuration } from "./media-player";
+import { PdfViewer } from "./pdf-viewer";
+import { useAppMetadata } from "./use-preview-fetch";
+import { WebsiteFrame } from "./website-frame";
 
 /**
- * Sixteen bespoke mobile destination screens — each looks like the
- * real thing someone sees after scanning that QR type, not a generic
- * card. Rendered inside <PhoneFrame> for both the Step-1 hover sample
- * (sample=true, illustrative extras shown) and the live Step-2+ preview
- * (sample=false, only the user's real fields). Preview-only.
+ * Real, functional mobile destination screens. Every screen renders
+ * ONLY the current content's real fields (or real fixtures on the
+ * homepage Live-demo) — real files play, real links open, real
+ * metadata is fetched. No fabricated stats, media, or profile data.
+ * Where a platform blocks embedding we show an honest open/metadata
+ * fallback with the real normalized URL.
  */
 
-/** Inline gradient image (self-contained, no network) for decorative tiles. */
-function gradient(from: string, to: string, w = 300, h = 300): string {
-  const svg =
-    `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'>` +
-    `<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>` +
-    `<stop offset='0' stop-color='${from}'/><stop offset='1' stop-color='${to}'/>` +
-    `</linearGradient></defs><rect width='${w}' height='${h}' fill='url(%23g)'/></svg>`;
-  return `data:image/svg+xml,${svg.replace(/#/g, "%23").replace(/ /g, "%20")}`;
-}
-
-const TILES = [
-  gradient("#3B5BFF", "#6E86FF"),
-  gradient("#1B8A5B", "#9AD6B4"),
-  gradient("#D9A21B", "#F0D89B"),
-  gradient("#1B1B2F", "#6B675C"),
-  gradient("#C2392F", "#F0A59B"),
-  gradient("#6E86FF", "#1B1B2F"),
-];
-
-function domainOf(url: string): string {
-  try {
-    return new URL(url.startsWith("http") ? url : `https://${url}`).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
-
-/* ── 1 · Website — modern landing page ── */
-function WebsiteScreen({ data }: { data: WebsiteContent; sample: boolean }) {
+/** Honest empty state for a screen with nothing to show yet. */
+function Empty({ icon: Icon, children }: { icon: LucideIcon; children: React.ReactNode }) {
   return (
-    <div>
-      <Hero height="h-44">
-        <span className="mb-1 inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 font-mono text-[10px] text-white backdrop-blur">
-          <Globe className="size-3" aria-hidden />
-          {domainOf(data.url || "theqrgate.com")}
-        </span>
-        <p className="text-lg leading-tight font-semibold text-white">{data.title || "The QR Gate"}</p>
-      </Hero>
-      <Body>
-        <p className="text-base leading-snug font-semibold">
-          {data.description || "Everything you need, one scan away."}
-        </p>
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          Create, customize, and share professional QR experiences your audience actually enjoys.
-        </p>
-        <PrimaryBtn icon={ExternalLink}>Explore now</PrimaryBtn>
-        <div className="grid grid-cols-2 gap-2 pt-1">
-          {["16 QR types", "Live design", "Instant share", "No app needed"].map((f) => (
-            <div key={f} className="rounded-xl border bg-card p-2.5">
-              <span className="size-1.5 rounded-full bg-accent" />
-              <p className="mt-1.5 text-[11px] font-medium">{f}</p>
-            </div>
-          ))}
-        </div>
-      </Body>
-    </div>
-  );
-}
-
-/* ── 2 · PDF — document viewer ── */
-function PdfScreen({ data, sample }: { data: PDFContent; sample: boolean }) {
-  const sizeMb = data.file ? (data.file.fileSize / (1024 * 1024)).toFixed(1) : null;
-  return (
-    <Body top>
-      <div className="mx-auto w-32 rotate-[-2deg] rounded-lg border bg-white p-3 shadow-md">
-        <div className="mb-2 h-2 w-8 rounded-full bg-primary/80" />
-        {Array.from({ length: 7 }).map((_, i) => (
-          <div key={i} className={cn("mb-1.5 h-1 rounded-full bg-muted", i % 3 === 2 ? "w-1/2" : "w-full")} />
-        ))}
-      </div>
-      <div className="space-y-1 pt-2 text-center">
-        <h1 className="text-base font-semibold">{data.title || "Document"}</h1>
-        {data.description && <p className="text-xs text-muted-foreground">{data.description}</p>}
-      </div>
-      <div className="flex flex-wrap justify-center gap-1.5">
-        <Chip>PDF</Chip>
-        {sizeMb && <Chip>{sizeMb} MB</Chip>}
-        {sample && <Chip>24 pages</Chip>}
-      </div>
-      <PrimaryBtn icon={FileText}>{data.buttonLabel || "Open PDF"}</PrimaryBtn>
-      <GhostBtn icon={Download}>Download</GhostBtn>
-      {sample && <p className="text-center text-[10px] text-muted-foreground">Updated 3 days ago</p>}
+    <Body top className="flex min-h-full flex-col items-center justify-center gap-2 text-center">
+      <Icon className="size-8 text-muted-foreground/50" aria-hidden />
+      <p className="text-xs text-muted-foreground">{children}</p>
     </Body>
   );
 }
 
-/* ── 3 · List of Links — link-in-bio ── */
-function LinksScreen({ data, sample }: { data: LinksContent; sample: boolean }) {
-  const links = data.links.filter((l) => l.label.trim());
+/** Honest open/metadata fallback for embed-blocked destinations. */
+function OpenCard({
+  icon: Icon,
+  title,
+  url,
+  note,
+  tone = "ink",
+  buttonLabel = "Open",
+}: {
+  icon: LucideIcon;
+  title: string;
+  url: string;
+  note?: string;
+  tone?: "ink" | "accent";
+  buttonLabel?: string;
+}) {
+  return (
+    <Body top className="flex min-h-full flex-col items-center justify-center gap-3 text-center">
+      <span className="flex size-14 items-center justify-center rounded-2xl border bg-card">
+        <Icon className="size-6 text-foreground" aria-hidden />
+      </span>
+      <div className="space-y-1">
+        <p className="text-sm font-semibold">{title}</p>
+        <p className="font-mono text-[11px] break-all text-muted-foreground">{url}</p>
+      </div>
+      <a href={url} target="_blank" rel="noreferrer" className="w-full">
+        <PrimaryBtn icon={Icon} tone={tone}>
+          {buttonLabel}
+        </PrimaryBtn>
+      </a>
+      {note && <p className="text-[10px] leading-relaxed text-muted-foreground">{note}</p>}
+    </Body>
+  );
+}
+
+/* ── Website ── */
+function WebsiteScreen({ data }: { data: WebsiteContent }) {
+  return <WebsiteFrame data={data} />;
+}
+
+/* ── PDF ── */
+function PdfScreen({ data }: { data: PDFContent }) {
+  return <PdfViewer file={data.file} title={data.title} description={data.description} buttonLabel={data.buttonLabel} />;
+}
+
+/* ── List of Links ── */
+function LinksScreen({ data }: { data: LinksContent }) {
+  const links = data.links.filter((l) => l.label.trim() && normalizeUrl(l.url));
   return (
     <div className="min-h-full bg-gradient-to-b from-secondary to-background">
       <Body top className="text-center">
         <div className="flex flex-col items-center gap-2">
-          <Avatar src={data.image?.previewUrl} name={data.title} size={68} />
-          <div className="flex items-center gap-1">
-            <p className="text-base font-semibold">{data.title || "Your name"}</p>
-            {sample && <BadgeCheck className="size-4 fill-accent text-background" aria-hidden />}
-          </div>
-          {data.description && <p className="text-xs text-muted-foreground">{data.description}</p>}
+          <Avatar src={data.image?.previewUrl} name={data.title} size={64} />
+          {data.title.trim() && <p className="text-base font-semibold">{data.title}</p>}
+          {data.description.trim() && <p className="text-xs text-muted-foreground">{data.description}</p>}
         </div>
-        <div className="space-y-2 pt-1">
-          {(links.length ? links : [{ id: "p", label: "Add your first link", url: "", icon: "link" }]).map((l) => (
-            <div
-              key={l.id}
-              className="flex h-11 items-center justify-between rounded-xl border bg-card px-4 text-sm font-medium shadow-sm"
-            >
-              <span className="truncate">{l.label}</span>
-              <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-            </div>
-          ))}
-        </div>
-        {sample && (
-          <div className="flex justify-center gap-4 pt-1 text-muted-foreground">
-            {(["instagram", "youtube", "x"] as const).map((p) => {
-              const Icon = SOCIAL_ICONS[p];
-              return <Icon key={p} className="size-4" aria-hidden />;
-            })}
+        {links.length === 0 ? (
+          <p className="pt-4 text-xs text-muted-foreground">Add a link and it appears here as a button.</p>
+        ) : (
+          <div className="space-y-2 pt-1">
+            {links.map((l) => (
+              <a
+                key={l.id}
+                href={normalizeUrl(l.url)!}
+                target="_blank"
+                rel="noreferrer"
+                className="flex h-11 items-center justify-between rounded-xl border bg-card px-4 text-sm font-medium shadow-sm"
+              >
+                <span className="truncate">{l.label}</span>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              </a>
+            ))}
           </div>
         )}
       </Body>
@@ -198,27 +160,50 @@ function LinksScreen({ data, sample }: { data: LinksContent; sample: boolean }) 
   );
 }
 
-/* ── 4 · vCard — contact profile ── */
-function VcardScreen({ data }: { data: VCardContent; sample: boolean }) {
-  const name = [data.firstName, data.lastName].filter(Boolean).join(" ") || "Your name";
+/* ── vCard ── */
+function VcardScreen({ data }: { data: VCardContent }) {
+  const name = [data.firstName, data.lastName].filter((s) => s.trim()).join(" ");
   const role = [data.jobTitle, data.company].filter((s) => s?.trim()).join(" · ");
   const address = [data.street, data.city, data.country].filter((s) => s?.trim()).join(", ");
+
+  const saveContact = () => {
+    const vcf = buildVCardPayload(data);
+    if (!vcf) return;
+    const blob = new Blob([vcf], { type: "text/vcard" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${name || "contact"}.vcf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  if (!name && !role) return <Empty icon={UserPlus}>Enter a name to preview the contact card.</Empty>;
+
   return (
     <div>
       <div className="relative h-20 bg-gradient-to-br from-accent/80 to-primary" />
       <Body className="-mt-9">
         <div className="flex flex-col items-center gap-1.5 text-center">
           <Avatar name={name} size={64} />
-          <p className="text-base font-semibold">{name}</p>
+          {name && <p className="text-base font-semibold">{name}</p>}
           {role && <p className="text-xs text-muted-foreground">{role}</p>}
         </div>
         <div className="flex gap-2 pt-1">
-          <IconAction icon={Phone} label="Call" />
-          <IconAction icon={Mail} label="Email" />
-          <IconAction icon={UserPlus} label="Save" />
+          {data.mobile?.trim() && <IconAction icon={Phone} label="Call" />}
+          {data.email?.trim() && <IconAction icon={Mail} label="Email" />}
+          <button type="button" onClick={saveContact} className="flex flex-1 flex-col items-center gap-1.5">
+            <span className="flex size-11 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <UserPlus className="size-4.5" aria-hidden />
+            </span>
+            <span className="text-[10px] font-medium text-muted-foreground">Save</span>
+          </button>
         </div>
         <div className="divide-y rounded-xl border bg-card px-2">
           {data.mobile?.trim() && <Field icon={Phone} label="Mobile" value={data.mobile} />}
+          {data.phone?.trim() && <Field icon={Phone} label="Phone" value={data.phone} />}
           {data.email?.trim() && <Field icon={Mail} label="Email" value={data.email} />}
           {data.website?.trim() && <Field icon={Globe} label="Website" value={data.website} />}
           {address && <Field icon={MapPin} label="Address" value={address} />}
@@ -228,9 +213,29 @@ function VcardScreen({ data }: { data: VCardContent; sample: boolean }) {
   );
 }
 
-/* ── 5 · Business — local business profile ── */
-function BusinessScreen({ data, sample }: { data: BusinessContent; sample: boolean }) {
-  const hours = data.hours.filter((h) => !h.closed).slice(0, 3);
+/* ── Business ── */
+const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+function BusinessScreen({ data }: { data: BusinessContent }) {
+  const [openNow, setOpenNow] = React.useState<boolean | null>(null);
+  React.useEffect(() => {
+    // Real open/closed from the entered hours + the viewer's clock.
+    const now = new Date();
+    const today = data.hours.find((h) => h.day === DAY_KEYS[now.getDay()]);
+    if (!today || today.closed) return setOpenNow(false);
+    const [oh, om] = today.opens.split(":").map(Number);
+    const [ch, cm] = today.closes.split(":").map(Number);
+    const mins = now.getHours() * 60 + now.getMinutes();
+    setOpenNow(mins >= oh * 60 + om && mins <= ch * 60 + cm);
+  }, [data.hours]);
+
+  const address = [data.street, data.city, data.country].filter((s) => s?.trim()).join(", ");
+  const mapUrl = address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : null;
+  const website = data.website.trim() ? normalizeUrl(data.website) : null;
+  const socials = data.socials.filter((s) => normalizeUrl(s.url));
+  const hours = data.hours.filter((h) => !h.closed);
+
+  if (!data.name.trim()) return <Empty icon={MapPin}>Enter a business name to preview the page.</Empty>;
+
   return (
     <div>
       <Hero src={data.cover?.previewUrl} height="h-28" />
@@ -238,21 +243,28 @@ function BusinessScreen({ data, sample }: { data: BusinessContent; sample: boole
         <div className="flex items-end gap-3">
           <Avatar src={data.logo?.previewUrl} name={data.name} size={56} />
           <div className="min-w-0 flex-1 pb-1">
-            <p className="truncate text-base font-semibold">{data.name || "Your business"}</p>
+            <p className="truncate text-base font-semibold">{data.name}</p>
             <div className="flex flex-wrap items-center gap-1.5">
-              {data.category && <span className="text-[11px] text-muted-foreground">{data.category}</span>}
-              {sample && <Chip tone="open">Open now</Chip>}
+              {data.category.trim() && <span className="text-[11px] text-muted-foreground">{data.category}</span>}
+              {openNow !== null && (
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${openNow ? "bg-[#1B8A5B]/12 text-[#1B8A5B]" : "bg-muted text-muted-foreground"}`}
+                >
+                  <span className={`size-1.5 rounded-full ${openNow ? "bg-[#1B8A5B]" : "bg-muted-foreground"}`} />
+                  {openNow ? "Open now" : "Closed"}
+                </span>
+              )}
             </div>
           </div>
         </div>
-        {sample && <Stars value={4.8} />}
-        {data.description && (
+        {data.headline.trim() && <p className="text-xs font-medium">{data.headline}</p>}
+        {data.description.trim() && (
           <p className="text-xs leading-relaxed text-muted-foreground">{data.description}</p>
         )}
         <div className="flex gap-2">
-          {data.phone?.trim() && <IconAction icon={Phone} label="Call" />}
-          <IconAction icon={Navigation} label="Directions" />
-          {data.website?.trim() && <IconAction icon={Globe} label="Website" />}
+          {data.phone.trim() && <IconAction icon={Phone} label="Call" />}
+          {mapUrl && <IconAction icon={Navigation} label="Directions" />}
+          {website && <IconAction icon={Globe} label="Website" />}
         </div>
         {hours.length > 0 && (
           <div className="rounded-xl border bg-card p-3">
@@ -269,221 +281,239 @@ function BusinessScreen({ data, sample }: { data: BusinessContent; sample: boole
             ))}
           </div>
         )}
-        {data.ctaLabel?.trim() && <PrimaryBtn>{data.ctaLabel}</PrimaryBtn>}
-      </Body>
-    </div>
-  );
-}
-
-/* ── 6 · Video — video landing ── */
-function VideoScreen({ data, sample }: { data: VideoContent; sample: boolean }) {
-  return (
-    <div>
-      <div className="relative aspect-video w-full">
-        {data.thumbnail?.previewUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={data.thumbnail.previewUrl} alt="" className="absolute inset-0 size-full object-cover" />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-accent/70 to-primary" />
-        )}
-        <div className="absolute inset-0 bg-black/25" />
-        <span className="absolute top-1/2 left-1/2 flex size-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 shadow-lg">
-          <Play className="size-5 translate-x-0.5 fill-primary text-primary" aria-hidden />
-        </span>
-        {sample && (
-          <span className="absolute right-2 bottom-2 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[10px] text-white">
-            1:32
-          </span>
-        )}
-      </div>
-      <Body>
-        <p className="text-sm leading-snug font-semibold">{data.title || "Your video"}</p>
-        <div className="flex items-center gap-2">
-          <Avatar name={sample ? "The QR Gate" : data.title} size={28} />
-          <div className="min-w-0">
-            <p className="truncate text-[11px] font-medium">{sample ? "The QR Gate" : "Channel"}</p>
-            {sample && <p className="text-[10px] text-muted-foreground">12K views · 2 days ago</p>}
+        {data.ctaLabel.trim() && normalizeUrl(data.ctaUrl) && <PrimaryBtn>{data.ctaLabel}</PrimaryBtn>}
+        {socials.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-2 pt-1">
+            {socials.map((s) => {
+              const Icon = SOCIAL_ICONS[s.platform];
+              return (
+                <span key={s.id} className="flex size-9 items-center justify-center rounded-full border bg-card">
+                  <Icon className="size-4" aria-hidden />
+                </span>
+              );
+            })}
           </div>
-        </div>
-        {data.description && (
-          <p className="text-xs leading-relaxed text-muted-foreground">{data.description}</p>
         )}
-        <PrimaryBtn icon={Play}>Watch video</PrimaryBtn>
       </Body>
     </div>
   );
 }
 
-/* ── 7 · Images — mobile gallery ── */
-function ImagesScreen({ data, sample }: { data: ImagesContent; sample: boolean }) {
-  const imgs = data.images.map((i) => i.asset.previewUrl).filter(Boolean) as string[];
-  const shown = imgs.length ? imgs : TILES;
+/* ── Video ── */
+function VideoScreen({ data }: { data: VideoContent }) {
+  if (data.mode === "upload") {
+    if (!data.file?.previewUrl) return <Empty icon={Play}>Upload a video to preview it here.</Empty>;
+    return (
+      <div>
+        <VideoPlayer src={data.file.previewUrl} poster={data.thumbnail?.previewUrl} />
+        <Body>
+          {data.title.trim() && <p className="text-sm font-semibold">{data.title}</p>}
+          {data.description.trim() && <p className="text-xs text-muted-foreground">{data.description}</p>}
+        </Body>
+      </div>
+    );
+  }
+  const embed = videoEmbed({ type: "video", data });
+  if (embed) {
+    return (
+      <div>
+        {embed.provider === "youtube" ? (
+          <YouTubeEmbed embedUrl={embed.embedUrl} title={data.title || "Video"} />
+        ) : (
+          <VimeoEmbed embedUrl={embed.embedUrl} title={data.title || "Video"} />
+        )}
+        <Body>
+          {data.title.trim() && <p className="text-sm font-semibold">{data.title}</p>}
+          {data.description.trim() && <p className="text-xs text-muted-foreground">{data.description}</p>}
+        </Body>
+      </div>
+    );
+  }
+  const url = normalizeUrl(data.videoUrl);
+  if (!url) return <Empty icon={Play}>Add a video URL to preview it here.</Empty>;
+  return <OpenCard icon={Play} title={data.title || "Video"} url={url} buttonLabel="Watch video" />;
+}
+
+/* ── Images ── */
+function ImagesScreen({ data }: { data: ImagesContent }) {
+  const imgs = data.images
+    .map((i) => ({ url: i.asset.previewUrl, caption: i.caption }))
+    .filter((i) => i.url) as { url: string; caption: string }[];
+  if (imgs.length === 0) return <Empty icon={Globe}>Upload images to preview the gallery.</Empty>;
+  const ctaUrl = data.ctaLabel.trim() && data.ctaUrl.trim() ? normalizeUrl(data.ctaUrl) : null;
   return (
     <div>
       <div className="relative aspect-[4/3] w-full">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={shown[0]} alt="" className="absolute inset-0 size-full object-cover" />
+        <img src={imgs[0].url} alt={imgs[0].caption || "Image 1"} className="absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 p-3">
-          <p className="text-base font-semibold text-white">{data.title || "Gallery"}</p>
-          {data.description && <p className="text-[11px] text-white/85">{data.description}</p>}
+          {data.title.trim() && <p className="text-base font-semibold text-white">{data.title}</p>}
+          {imgs[0].caption.trim() && <p className="text-[11px] text-white/85">{imgs[0].caption}</p>}
         </div>
         <span className="absolute top-9 right-2 rounded-full bg-black/60 px-2 py-0.5 font-mono text-[10px] text-white">
-          {shown.length} photos
+          {imgs.length} {imgs.length === 1 ? "photo" : "photos"}
         </span>
       </div>
       <Body>
-        <div className="grid grid-cols-3 gap-1.5">
-          {shown.slice(1, 7).map((src, i) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img key={i} src={src} alt="" className="aspect-square w-full rounded-lg border object-cover" />
-          ))}
-        </div>
-        {sample && <PrimaryBtn icon={ImagesIcon}>View gallery</PrimaryBtn>}
+        {data.description.trim() && <p className="text-xs text-muted-foreground">{data.description}</p>}
+        {imgs.length > 1 && (
+          <div className="grid grid-cols-3 gap-1.5">
+            {imgs.slice(1).map((img, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={i}
+                src={img.url}
+                alt={img.caption || `Image ${i + 2}`}
+                className="aspect-square w-full rounded-lg border object-cover"
+              />
+            ))}
+          </div>
+        )}
+        {ctaUrl && (
+          <a href={ctaUrl} target="_blank" rel="noreferrer">
+            <PrimaryBtn>{data.ctaLabel}</PrimaryBtn>
+          </a>
+        )}
       </Body>
     </div>
   );
 }
 
-/* ── 8 · Facebook — page destination ── */
-function FacebookScreen({ data, sample }: { data: FacebookContent; sample: boolean }) {
+/* ── Facebook ── */
+function FacebookScreen({ data }: { data: FacebookContent }) {
   const url = normalizeFacebookUrl(data.url);
-  return (
-    <div>
-      <Hero height="h-24" scrim={false} />
-      <Body className="-mt-8">
-        <div className="flex items-end gap-3">
-          <Avatar name={data.pageName} size={60} />
-          <div className="flex items-center gap-1 pb-1">
-            <p className="text-base font-semibold">{data.pageName || "Facebook page"}</p>
-            {sample && <BadgeCheck className="size-4 fill-accent text-background" aria-hidden />}
-          </div>
+  if (!url) return <Empty icon={SOCIAL_ICONS.facebook}>Add your Facebook page URL to preview it.</Empty>;
+  // Official Page Plugin for public pages; honest open fallback otherwise.
+  if (facebookPluginUrl(url)) {
+    return (
+      <div className="flex min-h-full flex-col">
+        <div className="px-3 pt-10 pb-2">
+          <p className="text-sm font-semibold">{data.pageName.trim() || "Facebook page"}</p>
         </div>
-        {sample && (
-          <div className="flex divide-x rounded-xl border bg-card py-2">
-            <Metric value="12.4K" label="Likes" />
-            <Metric value="12.8K" label="Followers" />
-          </div>
-        )}
-        {data.description && (
-          <p className="text-xs leading-relaxed text-muted-foreground">{data.description}</p>
-        )}
-        <PrimaryBtn icon={SOCIAL_ICONS.facebook} tone="accent">
-          Visit Facebook page
-        </PrimaryBtn>
-        {sample && (
-          <div className="overflow-hidden rounded-xl border bg-card">
-            <div className="h-20 bg-gradient-to-br from-accent/50 to-primary" />
-            <p className="p-2.5 text-[11px] text-muted-foreground">
-              New templates just dropped — scan, style, and share in minutes. 🎉
-            </p>
-          </div>
-        )}
-        <p className="text-center text-[10px] text-muted-foreground">
-          Opens {url ?? "your Facebook page"} directly
-        </p>
-      </Body>
-    </div>
+        <FacebookEmbed pageUrl={url} />
+        <Body>
+          <a href={url} target="_blank" rel="noreferrer">
+            <PrimaryBtn icon={SOCIAL_ICONS.facebook} tone="accent">
+              Open Facebook page
+            </PrimaryBtn>
+          </a>
+        </Body>
+      </div>
+    );
+  }
+  return (
+    <OpenCard
+      icon={SOCIAL_ICONS.facebook}
+      title={data.pageName.trim() || "Facebook page"}
+      url={url}
+      tone="accent"
+      buttonLabel="Open Facebook page"
+    />
   );
 }
 
-/* ── 9 · Instagram — creator profile ── */
-function InstagramScreen({ data, sample }: { data: InstagramContent; sample: boolean }) {
-  const handle = normalizeInstagramInput(data.handle)?.replace(/^https:\/\/www\.instagram\.com\//, "@").replace(/\/$/, "");
+/* ── Instagram (profiles block embedding — honest fallback) ── */
+function InstagramScreen({ data }: { data: InstagramContent }) {
+  const url = normalizeInstagramInput(data.handle);
+  if (!url) return <Empty icon={InstagramIcon}>Add your Instagram username to preview it.</Empty>;
+  const username = url.replace(/^https:\/\/www\.instagram\.com\//, "@").replace(/\/$/, "");
   return (
-    <Body top>
-      <div className="flex items-center gap-4">
-        <Avatar name={data.title || "IG"} size={64} className="ring-2 ring-accent/60" />
-        <div className="flex flex-1 divide-x">
-          <Metric value={sample ? "128" : "—"} label="Posts" />
-          <Metric value={sample ? "9.2K" : "—"} label="Followers" />
-          <Metric value={sample ? "312" : "—"} label="Following" />
-        </div>
-      </div>
-      <div>
-        <p className="text-sm font-semibold">{handle || data.handle || "@username"}</p>
-        {data.title && <p className="text-xs font-medium">{data.title}</p>}
-        {data.description && <p className="text-xs text-muted-foreground">{data.description}</p>}
-      </div>
-      <div className="grid grid-cols-3 gap-1">
-        {TILES.map((src, i) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img key={i} src={src} alt="" className="aspect-square w-full object-cover" />
-        ))}
-      </div>
-      <PrimaryBtn icon={SOCIAL_ICONS.instagram}>Open Instagram</PrimaryBtn>
-    </Body>
+    <OpenCard
+      icon={InstagramIcon}
+      title={data.title.trim() || username}
+      url={url}
+      buttonLabel="Open Instagram profile"
+      note="Instagram doesn't allow full profile embedding, so this opens the real profile."
+    />
   );
 }
 
-/* ── 10 · Social Media — hub ── */
-function SocialScreen({ data }: { data: SocialContent; sample: boolean }) {
-  const links = data.links.filter((l) => l.url.trim());
+/* ── Social Media ── */
+function SocialScreen({ data }: { data: SocialContent }) {
+  const links = data.links.filter((l) => normalizeUrl(l.url));
   return (
     <Body top className="text-center">
       <div className="flex flex-col items-center gap-2">
         <Avatar src={data.image?.previewUrl} name={data.title} size={60} />
-        <p className="text-base font-semibold">{data.title || "Follow us"}</p>
-        {data.description && <p className="text-xs text-muted-foreground">{data.description}</p>}
+        {data.title.trim() && <p className="text-base font-semibold">{data.title}</p>}
+        {data.description.trim() && <p className="text-xs text-muted-foreground">{data.description}</p>}
       </div>
-      <div className="space-y-2 pt-1 text-left">
-        {links.map((l) => {
-          const Icon = SOCIAL_ICONS[l.platform];
-          return (
-            <div key={l.id} className="flex h-11 items-center gap-3 rounded-xl border bg-card px-3 shadow-sm">
-              <span className="flex size-8 items-center justify-center rounded-lg bg-muted">
-                <Icon className="size-4" aria-hidden />
-              </span>
-              <span className="flex-1 truncate text-sm font-medium capitalize">
-                {l.label.trim() || l.platform}
-              </span>
-              <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
-            </div>
-          );
-        })}
-      </div>
+      {links.length === 0 ? (
+        <p className="pt-4 text-xs text-muted-foreground">Add a social link and it appears here.</p>
+      ) : (
+        <div className="space-y-2 pt-1 text-left">
+          {links.map((l) => {
+            const Icon = SOCIAL_ICONS[l.platform];
+            return (
+              <a
+                key={l.id}
+                href={normalizeUrl(l.url)!}
+                target="_blank"
+                rel="noreferrer"
+                className="flex h-11 items-center gap-3 rounded-xl border bg-card px-3 shadow-sm"
+              >
+                <span className="flex size-8 items-center justify-center rounded-lg bg-muted">
+                  <Icon className="size-4" aria-hidden />
+                </span>
+                <span className="flex-1 truncate text-sm font-medium capitalize">{l.label.trim() || l.platform}</span>
+                <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+              </a>
+            );
+          })}
+        </div>
+      )}
     </Body>
   );
 }
 
-/* ── 11 · WhatsApp — chat destination ── */
-function WhatsappScreen({ data, sample }: { data: WhatsAppContent; sample: boolean }) {
+/* ── WhatsApp ── */
+function WhatsappScreen({ data }: { data: WhatsAppContent }) {
   const phone = cleanWhatsAppPhone(data.countryCode, data.phone);
+  const chatUrl = buildWhatsAppPayload(data);
+  if (!phone) return <Empty icon={MessageCircle}>Add a phone number to preview the chat.</Empty>;
   return (
     <div className="flex min-h-full flex-col">
       <div className="flex items-center gap-3 bg-[#1B8A5B] px-4 pt-11 pb-3 text-white">
-        <Avatar name="QR" size={40} className="border-white/40" />
+        <Avatar name={phone} size={40} className="border-white/40" />
         <div className="min-w-0">
-          <p className="flex items-center gap-1 text-sm font-semibold">
-            The QR Gate {sample && <BadgeCheck className="size-3.5 fill-white text-[#1B8A5B]" aria-hidden />}
-          </p>
-          <p className="font-mono text-[11px] text-white/85">{phone ? `+${phone}` : "your number"}</p>
+          <p className="font-mono text-sm font-semibold">+{phone}</p>
+          <p className="text-[11px] text-white/85">WhatsApp</p>
         </div>
       </div>
       <div className="flex-1 space-y-2 bg-[#1B8A5B]/5 p-3">
         {data.message?.trim() ? (
           <div className="max-w-[85%] rounded-2xl rounded-tl-sm border bg-card p-2.5 shadow-sm">
             <p className="text-xs leading-relaxed whitespace-pre-wrap">{data.message}</p>
-            <p className="mt-1 text-right font-mono text-[9px] text-muted-foreground">pre-filled ·  9:41</p>
+            <p className="mt-1 text-right font-mono text-[9px] text-muted-foreground">pre-filled</p>
           </div>
         ) : (
-          <p className="text-center text-[11px] text-muted-foreground">Your pre-filled message appears here.</p>
+          <p className="text-center text-[11px] text-muted-foreground">
+            No pre-filled message — scanning just opens the chat.
+          </p>
         )}
       </div>
       <Body className="pt-3">
-        <PrimaryBtn icon={MessageCircle} tone="accent">
-          Continue to WhatsApp
-        </PrimaryBtn>
+        {chatUrl && (
+          <a href={chatUrl} target="_blank" rel="noreferrer">
+            <PrimaryBtn icon={MessageCircle} tone="accent">
+              Continue to WhatsApp
+            </PrimaryBtn>
+          </a>
+        )}
         <p className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
-          <Lock className="size-3" aria-hidden /> Your chat is end-to-end encrypted.
+          <Lock className="size-3" aria-hidden /> Opens WhatsApp with your message ready to send.
         </p>
       </Body>
     </div>
   );
 }
 
-/* ── 12 · MP3 — audio player ── */
-function Mp3Screen({ data, sample }: { data: MP3Content; sample: boolean }) {
+/* ── MP3 ── */
+function Mp3Screen({ data }: { data: MP3Content }) {
+  const [duration, setDuration] = useMediaDuration();
+  const src = data.mode === "upload" ? data.file?.previewUrl : normalizeUrl(data.audioUrl);
+  if (!src) return <Empty icon={Music}>Add an audio file or URL to preview the player.</Empty>;
   return (
     <Body top className="flex min-h-full flex-col items-center">
       <div className="aspect-square w-40 overflow-hidden rounded-2xl border shadow-md">
@@ -492,169 +522,165 @@ function Mp3Screen({ data, sample }: { data: MP3Content; sample: boolean }) {
           <img src={data.cover.previewUrl} alt="" className="size-full object-cover" />
         ) : (
           <div className="flex size-full items-center justify-center bg-gradient-to-br from-primary to-accent/70">
-            <Volume2 className="size-8 text-white/80" aria-hidden />
+            <Music className="size-8 text-white/80" aria-hidden />
           </div>
         )}
       </div>
-      <div className="w-full space-y-1 pt-3 text-center">
-        <p className="text-sm font-semibold">{data.title || "Track title"}</p>
-        {data.artist && <p className="text-xs text-muted-foreground">{data.artist}</p>}
+      <div className="w-full space-y-0.5 pt-3 text-center">
+        {data.title.trim() && <p className="text-sm font-semibold">{data.title}</p>}
+        <p className="text-xs text-muted-foreground">
+          {data.artist.trim()}
+          {data.artist.trim() && duration ? " · " : ""}
+          {duration}
+        </p>
       </div>
-      <div className="w-full space-y-1 pt-2">
-        <div className="h-1 w-full rounded-full bg-muted">
-          <div className="h-full w-1/3 rounded-full bg-primary" />
-        </div>
-        <div className="flex justify-between font-mono text-[9px] text-muted-foreground">
-          <span>1:04</span>
-          <span>3:12</span>
-        </div>
+      <div className="w-full pt-3">
+        <AudioPlayer src={src} onDuration={setDuration} />
       </div>
-      <div className="flex items-center gap-6 pt-2">
-        <SkipBack className="size-5 text-muted-foreground" aria-hidden />
-        <span className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow">
-          {sample ? <Pause className="size-5" aria-hidden /> : <Play className="size-5 translate-x-0.5" aria-hidden />}
-        </span>
-        <SkipForward className="size-5 text-muted-foreground" aria-hidden />
-      </div>
-      {data.description && (
+      {data.description.trim() && (
         <p className="pt-3 text-center text-[11px] text-muted-foreground">{data.description}</p>
       )}
-      {data.allowDownload && (
-        <div className="w-full pt-2">
-          <GhostBtn icon={Download}>Download audio</GhostBtn>
-        </div>
+      {data.allowDownload && data.mode === "upload" && data.file?.previewUrl && (
+        <a href={data.file.previewUrl} download={data.file.fileName} className="w-full pt-2">
+          <GhostBtn icon={Music}>Download audio</GhostBtn>
+        </a>
       )}
     </Body>
   );
 }
 
-/* ── 13 · Menu — restaurant ── */
-const MENU_ITEMS: Record<string, [string, string][]> = {
-  Starters: [
-    ["Nile mezze board", "£9"],
-    ["Charred halloumi", "£7"],
-  ],
-  Mains: [
-    ["Grilled sea bass", "£18"],
-    ["Slow-lamb tagine", "£16"],
-  ],
-  Drinks: [
-    ["Hibiscus cooler", "£4"],
-    ["Mint lemonade", "£4"],
-  ],
-};
-
-function MenuScreen({ data, sample }: { data: MenuContent; sample: boolean }) {
+/* ── Menu ── */
+function MenuScreen({ data }: { data: MenuContent }) {
+  const title = data.businessName.trim() || data.menuTitle.trim();
+  if (data.mode === "pdf") {
+    return <PdfViewer file={data.file} title={title || "Menu"} description={data.description} buttonLabel="View menu" />;
+  }
+  const url = normalizeUrl(data.menuUrl);
+  if (!url) return <Empty icon={UtensilsCrossed}>Add a menu PDF or URL to preview it.</Empty>;
   return (
-    <div>
-      <Hero src={data.logo?.previewUrl} height="h-28">
-        <p className="text-lg font-semibold text-white">{data.businessName || data.menuTitle || "Menu"}</p>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] text-white/85">Restaurant · Egyptian</span>
-          {sample && <Chip tone="open">Open</Chip>}
-        </div>
-      </Hero>
-      <Body>
-        {data.description && <p className="text-xs text-muted-foreground">{data.description}</p>}
-        {sample ? (
-          Object.entries(MENU_ITEMS).map(([section, items]) => (
-            <div key={section} className="space-y-1.5">
-              <SectionLabel>{section}</SectionLabel>
-              {items.map(([n, p]) => (
-                <div key={n} className="flex items-baseline justify-between gap-2">
-                  <span className="text-xs font-medium">{n}</span>
-                  <span className="flex-1 border-b border-dashed border-border" />
-                  <span className="font-mono text-xs">{p}</span>
-                </div>
-              ))}
-            </div>
-          ))
-        ) : (
-          <p className="text-xs text-muted-foreground">Your full menu opens on the next screen.</p>
-        )}
-        <PrimaryBtn icon={UtensilsCrossed}>View full menu</PrimaryBtn>
-      </Body>
-    </div>
+    <OpenCard icon={UtensilsCrossed} title={title || "Menu"} url={url} buttonLabel="Open menu" />
   );
 }
 
-/* ── 14 · Apps — app store page ── */
-function AppsScreen({ data, sample }: { data: AppsContent; sample: boolean }) {
+/* ── Apps ── */
+function AppsScreen({ data }: { data: AppsContent }) {
+  // Real Apple metadata when the store URL resolves; else entered values.
+  const { data: meta } = useAppMetadata(data.appStoreUrl.trim() ? data.appStoreUrl : null);
+  const name = meta?.found && meta.name ? meta.name : data.appName;
+  const icon = meta?.found && meta.icon ? meta.icon : data.icon?.previewUrl;
+  const description = meta?.found && meta.description ? meta.description : data.description;
+  const genre = meta?.found ? meta.genre : null;
+  const rating = meta?.found ? meta.rating : null;
+
+  const stores = [
+    { url: normalizeUrl(data.appStoreUrl), label: "Download on the App Store", icon: Apple },
+    { url: normalizeUrl(data.playStoreUrl), label: "Get it on Google Play", icon: Play },
+    { url: normalizeUrl(data.websiteUrl), label: "Visit the website", icon: Globe },
+  ].filter((s) => s.url);
+
+  if (!name.trim() && stores.length === 0) {
+    return <Empty icon={Globe}>Add an app name and store link to preview.</Empty>;
+  }
   return (
     <Body top>
       <div className="flex items-center gap-3">
         <span className="size-16 overflow-hidden rounded-[1.1rem] border shadow-sm">
-          {data.icon?.previewUrl ? (
+          {icon ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={data.icon.previewUrl} alt="" className="size-full object-cover" />
+            <img src={icon} alt="" className="size-full object-cover" />
           ) : (
             <span className="flex size-full items-center justify-center bg-gradient-to-br from-accent to-primary font-mono text-lg font-semibold text-white">
-              {(data.appName || "A").charAt(0)}
+              {(name || "A").charAt(0)}
             </span>
           )}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold">{data.appName || "Your app"}</p>
-          {sample && <Stars value={4.9} />}
-          <p className="text-[11px] text-muted-foreground">Productivity</p>
+          <p className="truncate text-sm font-semibold">{name || "Your app"}</p>
+          <p className="text-[11px] text-muted-foreground">
+            {[genre, rating != null ? `★ ${rating}` : null].filter(Boolean).join(" · ") || " "}
+          </p>
         </div>
       </div>
-      {data.description && (
-        <p className="text-xs leading-relaxed text-muted-foreground">{data.description}</p>
-      )}
-      {sample && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {TILES.slice(0, 3).map((src, i) => (
-            <div key={i} className="h-28 w-16 shrink-0 overflow-hidden rounded-xl border">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt="" className="size-full object-cover" />
-            </div>
-          ))}
-        </div>
+      {description.trim() && (
+        <p className="line-clamp-4 text-xs leading-relaxed text-muted-foreground">{description}</p>
       )}
       <div className="space-y-2">
-        {data.appStoreUrl?.trim() && <PrimaryBtn icon={Apple}>Download on the App Store</PrimaryBtn>}
-        {data.playStoreUrl?.trim() && <GhostBtn icon={Play}>Get it on Google Play</GhostBtn>}
+        {stores.map((s, i) =>
+          i === 0 ? (
+            <a key={s.label} href={s.url!} target="_blank" rel="noreferrer">
+              <PrimaryBtn icon={s.icon}>{s.label}</PrimaryBtn>
+            </a>
+          ) : (
+            <a key={s.label} href={s.url!} target="_blank" rel="noreferrer">
+              <GhostBtn icon={s.icon}>{s.label}</GhostBtn>
+            </a>
+          ),
+        )}
       </div>
     </Body>
   );
 }
 
-/* ── 15 · Coupon — ticket ── */
-function CouponScreen({ data, sample }: { data: CouponContent; sample: boolean }) {
+/* ── Coupon ── */
+function CouponScreen({ data }: { data: CouponContent }) {
+  const [copied, setCopied] = React.useState(false);
   const discount = couponDiscountLabel(data);
   const expired = isCouponExpired(data.expiresAt);
+  const redeemUrl = data.redemptionUrl?.trim() ? normalizeUrl(data.redemptionUrl) : null;
+  if (!data.title.trim() && !data.code.trim()) {
+    return <Empty icon={Ticket}>Enter a coupon title and code to preview it.</Empty>;
+  }
+  const copy = async () => {
+    if (!data.code.trim()) return;
+    try {
+      await navigator.clipboard.writeText(data.code.trim());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable */
+    }
+  };
   return (
     <Body top className="flex min-h-full flex-col justify-center">
       <div className="relative overflow-hidden rounded-2xl border bg-card shadow-md">
         <div className="bg-gradient-to-br from-primary to-accent/80 p-4 text-center text-primary-foreground">
           <Avatar src={data.logo?.previewUrl} name={data.businessName} size={44} className="mx-auto" />
-          <p className="mt-2 text-3xl font-semibold tracking-tight">{discount || "20% off"}</p>
-          <p className="text-xs opacity-90">{data.title || "Special offer"}</p>
+          {discount && <p className="mt-2 text-3xl font-semibold tracking-tight">{discount}</p>}
+          {data.title.trim() && <p className="text-xs opacity-90">{data.title}</p>}
         </div>
-        {/* Perforation */}
         <div className="relative">
           <span className="absolute top-1/2 -left-2 size-4 -translate-y-1/2 rounded-full bg-background" />
           <span className="absolute top-1/2 -right-2 size-4 -translate-y-1/2 rounded-full bg-background" />
           <div className="mx-4 border-t border-dashed border-border" />
         </div>
         <div className="space-y-2.5 p-4">
-          <div className="flex items-center justify-between rounded-lg border border-dashed bg-muted/40 px-3 py-2">
-            <span className="font-mono text-sm font-semibold tracking-wide">{data.code || "CODE"}</span>
-            <span className="flex items-center gap-1 text-[11px] font-medium text-accent">
-              <Copy className="size-3.5" aria-hidden /> Copy
-            </span>
-          </div>
+          {data.code.trim() && (
+            <button
+              type="button"
+              onClick={copy}
+              className="flex w-full items-center justify-between rounded-lg border border-dashed bg-muted/40 px-3 py-2"
+            >
+              <span className="font-mono text-sm font-semibold tracking-wide">{data.code}</span>
+              <span className="flex items-center gap-1 text-[11px] font-medium text-accent">
+                <Copy className="size-3.5" aria-hidden /> {copied ? "Copied" : "Copy"}
+              </span>
+            </button>
+          )}
           {data.expiresAt && (
             <p className="text-center font-mono text-[10px] text-muted-foreground">
               {expired ? "Expired" : "Valid until"} {data.expiresAt}
             </p>
           )}
-          {!expired && <PrimaryBtn icon={Ticket}>{data.ctaLabel || "Redeem now"}</PrimaryBtn>}
-          {(sample || data.terms.trim()) && (
-            <p className="text-center text-[9px] leading-relaxed text-muted-foreground">
-              {data.terms.trim() || "One per customer. Not valid with other offers."}
-            </p>
+          {!expired &&
+            (redeemUrl ? (
+              <a href={redeemUrl} target="_blank" rel="noreferrer">
+                <PrimaryBtn icon={Ticket}>{data.ctaLabel.trim() || "Redeem now"}</PrimaryBtn>
+              </a>
+            ) : (
+              <PrimaryBtn icon={Ticket}>{data.ctaLabel.trim() || "Redeem now"}</PrimaryBtn>
+            ))}
+          {data.terms.trim() && (
+            <p className="text-center text-[9px] leading-relaxed text-muted-foreground">{data.terms}</p>
           )}
         </div>
       </div>
@@ -662,73 +688,80 @@ function CouponScreen({ data, sample }: { data: CouponContent; sample: boolean }
   );
 }
 
-/* ── 16 · WiFi — connection ── */
+/* ── WiFi (password hidden by default) ── */
 const WIFI_LABELS: Record<WiFiContent["encryption"], string> = {
   WPA: "WPA/WPA2",
   WEP: "WEP",
   nopass: "Open network",
 };
-
-function WifiScreen({ data }: { data: WiFiContent; sample: boolean }) {
+function WifiScreen({ data }: { data: WiFiContent }) {
+  const [reveal, setReveal] = React.useState(false);
+  if (!data.ssid.trim()) return <Empty icon={Wifi}>Enter a network name to preview the WiFi page.</Empty>;
   return (
     <Body top className="flex min-h-full flex-col items-center justify-center text-center">
       <span className="flex size-20 items-center justify-center rounded-full bg-accent/10 ring-8 ring-accent/5">
         <Wifi className="size-9 text-accent" aria-hidden />
       </span>
       <div className="space-y-0.5 pt-1">
-        <p className="text-base font-semibold">{data.ssid || "Network name"}</p>
+        <p className="text-base font-semibold">{data.ssid}</p>
         <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
           <Lock className="size-3" aria-hidden /> {WIFI_LABELS[data.encryption]}
         </p>
       </div>
-      <div className="flex items-center gap-1.5 rounded-full bg-[#1B8A5B]/12 px-2.5 py-1 text-[11px] font-medium text-[#1B8A5B]">
-        <span className="size-1.5 rounded-full bg-[#1B8A5B]" /> Ready to connect
-      </div>
       <div className="w-full space-y-2 pt-1">
         <PrimaryBtn icon={Wifi}>Connect to WiFi</PrimaryBtn>
-        {data.encryption !== "nopass" && <GhostBtn icon={Copy}>Copy password</GhostBtn>}
+        {data.encryption !== "nopass" && data.password && (
+          <button
+            type="button"
+            onClick={() => setReveal((v) => !v)}
+            className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border bg-card px-4 text-sm font-medium"
+          >
+            {reveal ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
+            {reveal ? data.password : "Show password"}
+          </button>
+        )}
       </div>
       <p className="flex items-center justify-center gap-1 pt-1 text-[10px] text-muted-foreground">
-        <ShieldCheck className="size-3" aria-hidden /> Password stays on your device.
+        <ShieldCheck className="size-3" aria-hidden /> Scanning connects automatically — no typing needed.
       </p>
     </Body>
   );
 }
 
 /* ── Dispatcher ── */
-export function MobileDestination({ content, sample }: { content: QRContent; sample: boolean }) {
+export function MobileDestination({ content }: { content: QRContent }) {
   switch (content.type) {
     case "website":
-      return <WebsiteScreen data={content.data} sample={sample} />;
+      return <WebsiteScreen data={content.data} />;
     case "pdf":
-      return <PdfScreen data={content.data} sample={sample} />;
+      return <PdfScreen data={content.data} />;
     case "links":
-      return <LinksScreen data={content.data} sample={sample} />;
+      return <LinksScreen data={content.data} />;
     case "vcard":
-      return <VcardScreen data={content.data} sample={sample} />;
+      return <VcardScreen data={content.data} />;
     case "business":
-      return <BusinessScreen data={content.data} sample={sample} />;
+      return <BusinessScreen data={content.data} />;
     case "video":
-      return <VideoScreen data={content.data} sample={sample} />;
+      return <VideoScreen data={content.data} />;
     case "images":
-      return <ImagesScreen data={content.data} sample={sample} />;
+      return <ImagesScreen data={content.data} />;
     case "facebook":
-      return <FacebookScreen data={content.data} sample={sample} />;
+      return <FacebookScreen data={content.data} />;
     case "instagram":
-      return <InstagramScreen data={content.data} sample={sample} />;
+      return <InstagramScreen data={content.data} />;
     case "social":
-      return <SocialScreen data={content.data} sample={sample} />;
+      return <SocialScreen data={content.data} />;
     case "whatsapp":
-      return <WhatsappScreen data={content.data} sample={sample} />;
+      return <WhatsappScreen data={content.data} />;
     case "mp3":
-      return <Mp3Screen data={content.data} sample={sample} />;
+      return <Mp3Screen data={content.data} />;
     case "menu":
-      return <MenuScreen data={content.data} sample={sample} />;
+      return <MenuScreen data={content.data} />;
     case "apps":
-      return <AppsScreen data={content.data} sample={sample} />;
+      return <AppsScreen data={content.data} />;
     case "coupon":
-      return <CouponScreen data={content.data} sample={sample} />;
+      return <CouponScreen data={content.data} />;
     case "wifi":
-      return <WifiScreen data={content.data} sample={sample} />;
+      return <WifiScreen data={content.data} />;
   }
 }

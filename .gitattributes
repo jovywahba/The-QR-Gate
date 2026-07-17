@@ -1,0 +1,2 @@
+public/demo-previews/*.pdf -text binary
+public/demo-previews/*.wav -text binary

@@ -45,6 +45,7 @@ function asset(
 
 const AVATAR = img(120, 120, "#3B5BFF", "#1B1B2F", "SH");
 const COVER = img(320, 140, "#1B1B2F", "#3B5BFF");
+const VIDEO_THUMB = img(320, 180, "#3B5BFF", "#1B1B2F");
 const APP_ICON = img(120, 120, "#3B5BFF", "#6E86FF", "Q");
 const ALBUM = img(160, 160, "#1B8A5B", "#1B1B2F");
 const BIZ_LOGO = img(120, 120, "#1B1B2F", "#6B675C", "NB");
@@ -144,7 +145,7 @@ const SAMPLES: Record<QRType, QRContent> = {
       mode: "url",
       videoUrl: "https://theqrgate.com/watch/demo",
       file: null,
-      thumbnail: null,
+      thumbnail: asset("thumbnail.svg", VIDEO_THUMB),
       description: "A 90-second tour of everything The QR Gate can do.",
       ctaLabel: "Visit our site",
       ctaUrl: "https://theqrgate.com",

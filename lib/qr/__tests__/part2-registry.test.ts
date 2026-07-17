@@ -4,7 +4,7 @@ import { buildPayload, requiresPublishing } from "../payloads";
 import { toSafeDraft } from "../persistence";
 import { collectAssetRefs, displayNameFor, extractLinkItems, extractSocialItems, sanitizeContentForStorage } from "../publishing";
 import { QR_TYPES } from "../registry";
-import type { AssetRef, QRContent, QRType, QRWizardState } from "../types";
+import type { AssetRef, QRContent, QRWizardState } from "../types";
 import { contentSchemas } from "../validation";
 import { initialWizardState } from "../defaults";
 
@@ -37,36 +37,16 @@ describe("registry completeness (all 16 types)", () => {
     }
   });
 
-  it("every type has a preview adapter, and the preview panel renders each one", async () => {
+  it("the mobile-destination dispatcher renders a screen for every type", async () => {
     const fs = await import("node:fs");
     const path = await import("node:path");
-    const previewsDir = path.resolve(__dirname, "../../../components/qr-generator/previews");
-    const previewFiles: Record<QRType, string> = {
-      website: "website-preview.tsx",
-      whatsapp: "whatsapp-preview.tsx",
-      wifi: "wifi-preview.tsx",
-      vcard: "vcard-preview.tsx",
-      pdf: "pdf-preview.tsx",
-      links: "links-preview.tsx",
-      business: "business-preview.tsx",
-      video: "video-preview.tsx",
-      images: "images-preview.tsx",
-      facebook: "facebook-preview.tsx",
-      instagram: "instagram-preview.tsx",
-      social: "social-preview.tsx",
-      mp3: "audio-preview.tsx",
-      menu: "menu-preview.tsx",
-      apps: "apps-preview.tsx",
-      coupon: "coupon-preview.tsx",
-    };
-    const panel = fs.readFileSync(
-      path.resolve(previewsDir, "../qr-preview-panel.tsx"),
+    // Every type is dispatched to a bespoke phone screen in one place.
+    const screens = fs.readFileSync(
+      path.resolve(__dirname, "../../../components/qr-preview/screens.tsx"),
       "utf8",
     );
     for (const type of ALL_TYPES) {
-      expect(fs.existsSync(path.join(previewsDir, previewFiles[type])), `preview file for ${type}`).toBe(true);
-      // The panel routes each type through DestinationView's switch.
-      expect(panel, `panel renders ${type} preview`).toContain(`case "${type}":`);
+      expect(screens, `MobileDestination handles ${type}`).toContain(`case "${type}":`);
     }
   });
 });

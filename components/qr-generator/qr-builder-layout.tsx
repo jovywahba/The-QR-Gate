@@ -60,9 +60,9 @@ function BuilderShell() {
             <QRStepContent />
             <WizardActions />
           </div>
-          <aside className="hidden w-[336px] shrink-0 lg:block" aria-label="Live preview">
-            <div className="sticky top-24 rounded-lg border bg-card p-4">
-              <QRPreviewPanel />
+          <aside className="hidden w-[360px] shrink-0 lg:block" aria-label="Live preview">
+            <div className="sticky top-24 rounded-xl border bg-card p-4">
+              <QRPreviewPanel autoSwitch />
             </div>
           </aside>
         </div>

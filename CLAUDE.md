@@ -64,14 +64,14 @@ When in doubt, stop and ask Seleem.**
    direct types (Website, WhatsApp, WiFi, vCard) with Zod validation, live rendering
    via `qr-code-styling`, safe sessionStorage drafts (WiFi password memory-only),
    1024×1024 PNG download.
-2. **Part 2 (code complete — DB verification pending):** all 16 content forms + live
-   previews; Supabase publishing system (migrations `0001_qr_codes.sql`: qr_codes /
-   qr_link_items / qr_social_items / qr_assets, RLS owner-only, `get_public_qr()`
-   public read path, `qr-private`/`qr-public` storage buckets); signed-URL uploads
-   with server-side magic-byte verification; `/api/qr/upload[,/confirm]` +
-   `/api/qr/publish` (server revalidation, ownership checks, crypto slugs);
-   published pages at `/q/[slug]`. ⚠️ Hosted publishing untested until real
-   Supabase credentials land in `.env.local` and migrations are applied.
+2. **Part 2 (done, live-verified):** all 16 content forms + live previews; Supabase
+   publishing system (migrations `0001_qr_codes.sql`: qr_codes / qr_link_items /
+   qr_social_items / qr_assets, RLS owner-only, `get_public_qr()` public read path,
+   `qr-private`/`qr-public` storage buckets); signed-URL uploads with server-side
+   magic-byte verification; `/api/qr/upload[,/confirm]` + `/api/qr/publish` (server
+   revalidation, ownership checks, crypto slugs); published pages at `/q/[slug]`.
+   Verified 2026-07-17 against the live Supabase project: `pnpm verify:supabase`
+   23/23 RLS/storage/RPC checks, all 10 hosted types published E2E.
 3. **Part 3 (done):** real Step-3 design editor — presets (real mini-QR tiles),
    6 dot patterns, corner square/dot styles, solid + linear/radial gradient colors
    with rotation, local logo (validated data URL, auto-EC H, 10–25% cap), error
@@ -81,14 +81,20 @@ When in doubt, stop and ask Seleem.**
    errors block Continue + download. Styled QRs verified by independent decode
    (jsQR + ZXing); note: jsQR alone is too strict for the "dots" pattern — ZXing
    (real-scanner engine) decodes it fine.
-4. **Part 4 (code complete — live Supabase verification pending):** Step-4 export
-   panel (PNG 512/1024/2048 at true resolution + real vector SVG, one pipeline,
-   exact blocking reasons), `/dashboard/qr-codes` (RLS-scoped list, filters,
-   archive/restore), secure edit-saved-QR via `/create?id=` (server-verified
-   ownership), open-redirect guard (`lib/safe-redirect.ts`), draft-only storage
-   cleanup on replace/remove. **When real creds land in `.env.local`:** apply
-   `supabase/migrations/`, run `pnpm verify:supabase` (live RLS/storage/RPC
-   allow-deny matrix with two throwaway users), then the hosted E2E per type.
+   - **Step-1 hover preview:** hovering/focusing any of the 16 type cards previews a
+     realistic sample of that type in the mobile preview (`lib/qr/sample-previews.ts`
+     — one `QRContent` sample per type with inline-SVG images; rendered through the
+     same destination components). Split value/setter contexts in
+     `hover-preview.tsx` keep the 16 cards from re-rendering on hover. Preview
+     priority: hovered sample → live form content → welcome. Click still advances.
+4. **Part 4 (done, live-verified + deployed):** Step-4 export panel (PNG 512/1024/2048
+   at true resolution + real vector SVG, one pipeline, exact blocking reasons),
+   `/dashboard/qr-codes` (RLS-scoped list, filters, archive/restore), secure
+   edit-saved-QR via `/create?id=` (server-verified ownership), open-redirect guard
+   (`lib/safe-redirect.ts`), draft-only storage cleanup on replace/remove. Live on
+   Vercel at **the-qr-gate.vercel.app** (Seleem's project). Stripe is optional:
+   `getStripe()` is lazy, the webhook returns 503 unconfigured, so the app builds
+   and runs with no Stripe env. To re-verify Supabase later: `pnpm verify:supabase`.
 
 ---
 

@@ -12,8 +12,8 @@
 | Incumbent | QR Code Generator PRO (Bitly, qr-code-generator.com) |
 | One-line pitch | Real, scannable QR codes — 16 types, 4 steps, half the price |
 | Owner | Jovy |
-| Stage | `3 Building` (Part 1 of 4 — core engine) |
-| Live URL | — |
+| Stage | `4 Polish` (Parts 1–4 built + live-verified; deployed) |
+| Live URL | https://the-qr-gate.vercel.app |
 
 ## Pricing (record the claim — keep it honest)
 
@@ -120,14 +120,20 @@
   republish-same-slug + archive-404 confirmed.
 - **Part 3 (done):** full design editor (patterns, corners, colors/gradients, local
   logo w/ forced EC-H, margin), readability gating, single render pipeline shared by
-  preview + export. Styled outputs independently decoded (jsQR + ZXing).
+  preview + export. Styled outputs independently decoded (jsQR + ZXing). Plus a
+  **Step-1 hover sample preview**: hovering/focusing any of the 16 type cards previews
+  a realistic sample of that type in an upgraded phone-frame mobile preview
+  (`lib/qr/sample-previews.ts`; split value/setter hover contexts so the cards don't
+  re-render on hover). Verified live across all 16 types; click still advances.
 - **Part 4 (done, live-verified):** PNG 512/1024/2048 + real vector SVG export (all
   decode-verified), Step-4 experience, QR dashboard w/ archive/restore, secure
   edit-existing flow. Supabase schema applied via `SUPABASE_FULL_SETUP.sql`;
   `pnpm verify:supabase` 23/23; hosted E2E green for all 10 types.
-- Code pushed to `github.com/jovywahba/The-QR-Gate` (standalone export of this app).
-- Accounts (Gmail/Supabase/domain/Stripe/Vercel) **not provisioned yet** — Part 1
-  works entirely client-side by design.
+- **Deployed:** live at **https://the-qr-gate.vercel.app** (Vercel, Seleem's
+  project). Stripe is optional (lazy `getStripe()`, webhook 503 when unconfigured) so
+  it deploys with no Stripe env. Code on `github.com/jovywahba/The-QR-Gate`
+  (repo root = the app, flattened for Vercel default root detection).
+- Accounts still to formalize: dedicated Gmail, own domain, Stripe (billing not wired
+  yet). Supabase project `kxlqvzhvpnuqrzwubycs` is live (free tier — upgrade to Pro
+  before real users rely on printed codes so it never sleeps).
 - WiFi passwords are never persisted or logged (memory-only; drafts redact them).
-- Remaining: Parts 2–4 (all 16 content forms; design editor + mobile page preview;
-  publishing/hosted pages, database, billing, full QA).

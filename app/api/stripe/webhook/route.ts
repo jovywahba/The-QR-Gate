@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { stripe } from "@/lib/stripe/server";
+import { getStripe } from "@/lib/stripe/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -18,13 +18,19 @@ async function userIdForCustomer(supabase: Admin, customerId: string) {
 
 // Stripe POSTs here. Signature is verified before anything else (hard gate §10).
 export async function POST(req: NextRequest) {
+  // Billing is optional — without credentials this endpoint is simply off.
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+    return NextResponse.json({ error: "Stripe is not configured" }, { status: 503 });
+  }
+  const stripe = getStripe();
+
   const body = await req.text();
   const sig = req.headers.get("stripe-signature");
   if (!sig) return new NextResponse("Missing signature", { status: 400 });
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch {
     return new NextResponse("Invalid signature", { status: 400 });
   }

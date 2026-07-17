@@ -1,12 +1,16 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { stripe } from "@/lib/stripe/server";
+import { getStripe, isStripeConfigured } from "@/lib/stripe/server";
 import { stripeConfig } from "@/lib/stripe/config";
 import { createClient } from "@/lib/supabase/server";
 import { site } from "@/lib/site";
 
 export async function startCheckout() {
+  // Billing is optional — never crash the app when Stripe isn't set up.
+  if (!isStripeConfigured()) redirect("/billing?status=unconfigured");
+  const stripe = getStripe();
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -38,6 +42,9 @@ export async function startCheckout() {
 }
 
 export async function openPortal() {
+  if (!isStripeConfigured()) redirect("/billing?status=unconfigured");
+  const stripe = getStripe();
+
   const supabase = await createClient();
   const {
     data: { user },

@@ -14,16 +14,26 @@ export function QRTypeCard({
   definition,
   selected,
   onSelect,
+  onPreview,
+  onPreviewEnd,
 }: {
   definition: QRTypeDefinition;
   selected: boolean;
   onSelect: () => void;
+  /** Fires on hover/focus — drives the right-side sample preview. */
+  onPreview?: () => void;
+  /** Fires on mouse-leave/blur — restores the previous preview. */
+  onPreviewEnd?: () => void;
 }) {
   const Icon = definition.icon;
   return (
     <button
       type="button"
       onClick={onSelect}
+      onMouseEnter={onPreview}
+      onMouseLeave={onPreviewEnd}
+      onFocus={onPreview}
+      onBlur={onPreviewEnd}
       aria-pressed={selected}
       aria-label={`${definition.name} — ${definition.description}`}
       className={cn(

@@ -65,7 +65,8 @@ describe("registry completeness (all 16 types)", () => {
     );
     for (const type of ALL_TYPES) {
       expect(fs.existsSync(path.join(previewsDir, previewFiles[type])), `preview file for ${type}`).toBe(true);
-      expect(panel, `panel renders ${type} preview`).toContain(`content?.type === "${type}"`);
+      // The panel routes each type through DestinationView's switch.
+      expect(panel, `panel renders ${type} preview`).toContain(`case "${type}":`);
     }
   });
 });

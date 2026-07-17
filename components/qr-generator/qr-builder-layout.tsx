@@ -6,6 +6,7 @@ import { CircleHelp } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import type { QRType, WizardStep } from "@/lib/qr/types";
+import { HoverPreviewProvider } from "./hover-preview";
 import { QRMobilePreviewSheet } from "./qr-mobile-preview-sheet";
 import { QRPreviewPanel } from "./qr-preview-panel";
 import { QRStepContent } from "./qr-step-content";
@@ -93,7 +94,9 @@ export function QRBuilder({
 }) {
   return (
     <QRWizardProvider initialType={initialType} initialStep={initialStep} initialRecord={initialRecord}>
-      <BuilderShell />
+      <HoverPreviewProvider>
+        <BuilderShell />
+      </HoverPreviewProvider>
     </QRWizardProvider>
   );
 }

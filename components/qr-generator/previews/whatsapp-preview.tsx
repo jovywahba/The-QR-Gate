@@ -1,12 +1,14 @@
 "use client";
 
 import { MessageCircle } from "lucide-react";
-import { cleanWhatsAppPhone } from "@/lib/qr/payloads";
+import { ActionLink } from "@/components/qr-public/shared";
+import { buildWhatsAppPayload, cleanWhatsAppPhone } from "@/lib/qr/payloads";
 import type { WhatsAppContent } from "@/lib/qr/types";
 
 /** Accurate destination summary — scanning opens a WhatsApp chat. */
 export function WhatsAppPreview({ data }: { data: WhatsAppContent }) {
   const phone = cleanWhatsAppPhone(data.countryCode, data.phone);
+  const chatUrl = buildWhatsAppPayload(data);
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
@@ -30,6 +32,7 @@ export function WhatsAppPreview({ data }: { data: WhatsAppContent }) {
           Scanning opens a chat with this number. Add a message to pre-fill it.
         </p>
       )}
+      {chatUrl && <ActionLink href={chatUrl}>Start chat</ActionLink>}
     </div>
   );
 }

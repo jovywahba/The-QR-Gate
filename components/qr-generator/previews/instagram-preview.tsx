@@ -1,6 +1,7 @@
 "use client";
 
 import { Instagram } from "lucide-react";
+import { ActionLink } from "@/components/qr-public/shared";
 import { normalizeInstagramInput } from "@/lib/qr/payloads";
 import type { InstagramContent } from "@/lib/qr/types";
 
@@ -21,6 +22,7 @@ export function InstagramPreview({ data }: { data: InstagramContent }) {
       {data.description.trim() && (
         <p className="px-1 text-xs leading-relaxed text-muted-foreground">{data.description}</p>
       )}
+      {url && <ActionLink href={url}>Open profile</ActionLink>}
       <p className="px-1 text-xs text-muted-foreground">
         Scanning opens this Instagram profile directly — no landing page in between.
       </p>

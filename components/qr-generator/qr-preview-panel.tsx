@@ -2,10 +2,14 @@
 
 import * as React from "react";
 import dynamic from "next/dynamic";
-import { Smartphone } from "lucide-react";
+import { BatteryFull, QrCode, Signal, Wifi } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getQRType } from "@/lib/qr/registry";
+import { sampleContentFor } from "@/lib/qr/sample-previews";
+import type { QRContent } from "@/lib/qr/types";
+import { site } from "@/lib/site";
+import { useHoveredType } from "./hover-preview";
 import { AppsPreview } from "./previews/apps-preview";
 import { AudioPreview } from "./previews/audio-preview";
 import { BusinessPreview } from "./previews/business-preview";
@@ -36,42 +40,118 @@ const QRRenderer = dynamic(() => import("./qr-renderer"), {
   loading: () => <Skeleton className="aspect-square w-full rounded-lg" />,
 });
 
-function MobilePagePreview() {
-  const { state } = useQRWizard();
-  const content = state.content;
+/** Renders the destination view for any content type (real or sample). */
+function DestinationView({ content }: { content: QRContent }) {
+  switch (content.type) {
+    case "website":
+      return <WebsitePreview data={content.data} />;
+    case "whatsapp":
+      return <WhatsAppPreview data={content.data} />;
+    case "wifi":
+      return <WiFiPreview data={content.data} />;
+    case "vcard":
+      return <VCardPreview data={content.data} />;
+    case "pdf":
+      return <PdfPreview data={content.data} />;
+    case "links":
+      return <LinksPreview data={content.data} />;
+    case "business":
+      return <BusinessPreview data={content.data} />;
+    case "video":
+      return <VideoPreview data={content.data} />;
+    case "images":
+      return <ImagesPreview data={content.data} />;
+    case "facebook":
+      return <FacebookPreview data={content.data} />;
+    case "instagram":
+      return <InstagramPreview data={content.data} />;
+    case "social":
+      return <SocialPreview data={content.data} />;
+    case "mp3":
+      return <AudioPreview data={content.data} />;
+    case "menu":
+      return <MenuPreview data={content.data} />;
+    case "apps":
+      return <AppsPreview data={content.data} />;
+    case "coupon":
+      return <CouponPreview data={content.data} />;
+  }
+}
 
+/** A phone-shaped shell: bezel, notch, status bar, screen, home indicator. */
+function PhoneFrame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mx-auto w-full max-w-[240px]">
-      {/* Phone frame */}
-      <div className="rounded-[2rem] border-4 border-foreground/85 bg-background p-2.5 shadow-none">
-        <div aria-hidden className="mx-auto mb-2 h-1 w-12 rounded-full bg-foreground/20" />
-        <div className="min-h-[320px] overflow-y-auto rounded-[1.4rem] bg-muted/40 p-2.5">
-          {!content && (
-            <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 p-4 text-center">
-              <Smartphone className="size-7 text-muted-foreground/60" aria-hidden />
-              <p className="text-xs text-muted-foreground">
-                Select a QR type to see what phones get when they scan.
-              </p>
-            </div>
-          )}
-          {content?.type === "website" && <WebsitePreview data={content.data} />}
-          {content?.type === "whatsapp" && <WhatsAppPreview data={content.data} />}
-          {content?.type === "wifi" && <WiFiPreview data={content.data} />}
-          {content?.type === "vcard" && <VCardPreview data={content.data} />}
-          {content?.type === "pdf" && <PdfPreview data={content.data} />}
-          {content?.type === "links" && <LinksPreview data={content.data} />}
-          {content?.type === "business" && <BusinessPreview data={content.data} />}
-          {content?.type === "video" && <VideoPreview data={content.data} />}
-          {content?.type === "images" && <ImagesPreview data={content.data} />}
-          {content?.type === "facebook" && <FacebookPreview data={content.data} />}
-          {content?.type === "instagram" && <InstagramPreview data={content.data} />}
-          {content?.type === "social" && <SocialPreview data={content.data} />}
-          {content?.type === "mp3" && <AudioPreview data={content.data} />}
-          {content?.type === "menu" && <MenuPreview data={content.data} />}
-          {content?.type === "apps" && <AppsPreview data={content.data} />}
-          {content?.type === "coupon" && <CouponPreview data={content.data} />}
+    <div className="mx-auto w-full max-w-[248px]">
+      <div className="rounded-[2.2rem] border-[6px] border-foreground/85 bg-foreground/85 shadow-sm">
+        <div className="relative overflow-hidden rounded-[1.7rem] bg-background">
+          {/* Status bar + notch */}
+          <div className="relative flex items-center justify-between px-4 pt-2 pb-1">
+            <span className="font-mono text-[10px] font-medium tracking-tight">9:41</span>
+            <span
+              aria-hidden
+              className="absolute top-1.5 left-1/2 h-4 w-14 -translate-x-1/2 rounded-full bg-foreground/85"
+            />
+            <span className="flex items-center gap-1 text-foreground/70" aria-hidden>
+              <Signal className="size-3" />
+              <Wifi className="size-3" />
+              <BatteryFull className="size-3.5" />
+            </span>
+          </div>
+          {/* Screen */}
+          <div className="max-h-[430px] min-h-[330px] overflow-y-auto bg-muted/30 px-2.5 pt-1 pb-4">
+            {children}
+          </div>
+          {/* Home indicator */}
+          <div className="flex justify-center bg-background py-1.5">
+            <span aria-hidden className="h-1 w-20 rounded-full bg-foreground/25" />
+          </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Default screen when nothing is hovered or in progress. */
+function WelcomeScreen() {
+  return (
+    <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 p-5 text-center">
+      <span className="flex size-12 items-center justify-center rounded-xl border bg-card">
+        <QrCode className="size-6 text-accent" aria-hidden />
+      </span>
+      <p className="text-sm font-semibold">{site.name}</p>
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        Hover a QR type to preview what people see when they scan — then pick one to start.
+      </p>
+    </div>
+  );
+}
+
+function MobilePagePreview() {
+  const { state } = useQRWizard();
+  const hovered = useHoveredType();
+
+  // Preview priority: hovered sample → the real form content → welcome.
+  // Hovering only ever happens on Step 1 (the grid), so this never
+  // overrides the live form data on Steps 2–4.
+  const sample = React.useMemo(() => (hovered ? sampleContentFor(hovered) : null), [hovered]);
+  const content = sample ?? state.content;
+  const activeType = hovered ?? state.selectedType ?? content?.type ?? null;
+  const typeName = activeType ? getQRType(activeType).name : null;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between px-1">
+        <span className="font-mono text-[11px] tracking-[0.14em] text-muted-foreground uppercase">
+          {sample ? "Sample preview" : "Mobile page"}
+        </span>
+        {typeName && <span className="text-[11px] font-medium text-muted-foreground">{typeName}</span>}
+      </div>
+      <PhoneFrame>{content ? <DestinationView content={content} /> : <WelcomeScreen />}</PhoneFrame>
+      {sample && (
+        <p className="px-1 text-center text-[11px] leading-relaxed text-muted-foreground">
+          Example content — your own details appear here as you fill the form.
+        </p>
+      )}
     </div>
   );
 }

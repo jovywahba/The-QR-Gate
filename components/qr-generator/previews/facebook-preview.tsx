@@ -1,6 +1,7 @@
 "use client";
 
 import { Facebook } from "lucide-react";
+import { ActionLink } from "@/components/qr-public/shared";
 import { normalizeFacebookUrl } from "@/lib/qr/payloads";
 import type { FacebookContent } from "@/lib/qr/types";
 
@@ -21,6 +22,7 @@ export function FacebookPreview({ data }: { data: FacebookContent }) {
       {data.description.trim() && (
         <p className="px-1 text-xs leading-relaxed text-muted-foreground">{data.description}</p>
       )}
+      {url && <ActionLink href={url}>Open Facebook page</ActionLink>}
       <p className="px-1 text-xs text-muted-foreground">
         Scanning opens this Facebook page directly — no landing page in between.
       </p>

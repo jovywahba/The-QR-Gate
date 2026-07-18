@@ -7,7 +7,7 @@ import { landing } from "@/lib/landing";
 import { formatPrice } from "@/lib/utils";
 
 export function Hero() {
-  const { amount, currency, unit, trialDays } = site.pricing;
+  const { amount, currency } = site.pricing;
 
   return (
     <section className="bg-paper">
@@ -41,8 +41,8 @@ export function Hero() {
             ))}
           </ul>
           <p className="mt-5 font-mono text-sm text-muted-foreground">
-            From <span className="text-foreground">{formatPrice(amount, currency)}</span>
-            {unit ? `/${unit}` : ""} · {trialDays}-day free trial
+            Free plan · Pro <span className="text-foreground">{formatPrice(amount, currency)}</span>/mo · no card
+            required
           </p>
         </div>
 

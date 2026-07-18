@@ -29,11 +29,12 @@ export const landing = {
   // Social-proof strip (optional — leave blank to hide)
   socialProof: `For teams done overpaying for ${site.incumbent.name}.`,
 
-  // What's in the plan (shown on the pricing card)
+  // What's in the plan (shown on the pricing card — The QR Gate Pro)
   planIncludes: [
-    "Everything in the core product",
-    "Unlimited projects",
-    "SSO & audit logs included",
+    "Unlimited QR codes",
+    "Scan analytics",
+    "16 QR types & full customization",
+    "PNG & SVG downloads",
     "Email support",
   ],
 
@@ -73,9 +74,9 @@ export const landing = {
 
   // How it works — 3 steps.
   steps: [
-    { title: "Sign up free", body: `Start a ${site.pricing.trialDays}-day trial. No commitment.` },
-    { title: "Bring your data", body: `Import from ${site.incumbent.name} or start fresh.` },
-    { title: "Pay half", body: "Keep everything you need. Drop the bill by half." },
+    { title: "Sign up free", body: "Create your account free — 3 QR codes, no card required." },
+    { title: "Build your QR", body: "Pick a type, add content, style it, and download." },
+    { title: "Go unlimited", body: `Upgrade to Pro for $${site.pricing.amount}/mo — unlimited codes + analytics.` },
   ] satisfies Step[],
 
   // FAQ — also earns long-tail search + handles objections.
@@ -93,8 +94,8 @@ export const landing = {
       a: "Yes — import your existing data and keep working. Most teams switch in an afternoon.",
     },
     {
-      q: "Is there a free trial?",
-      a: `Yes — ${site.pricing.trialDays} days. A card is required to start, and you can cancel anytime before it ends.`,
+      q: "Is there a free plan?",
+      a: `Yes — every account gets 3 free QR codes, no card required. Upgrade to Pro ($${site.pricing.amount}/mo) for unlimited codes and scan analytics.`,
     },
     {
       q: "What's the catch?",

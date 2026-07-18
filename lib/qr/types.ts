@@ -352,9 +352,11 @@ export type QRWizardState = {
   /** "" when the content is invalid/empty — nothing renders, download disabled. */
   generatedPayload: string;
   publishingStatus: PublishingStatus;
+  /** Opt-in scan tracking for direct URL types (adds a /r/[slug] short link). */
+  trackingEnabled: boolean;
   /** Server-side draft row backing hosted uploads/publishing. */
   qrCodeId?: string;
-  /** The published /q/[slug] URL — the ONLY payload hosted types encode. */
+  /** The published /q/[slug] (or tracked /r/[slug]) URL the QR encodes. */
   publicUrl?: string;
   slug?: string;
 };

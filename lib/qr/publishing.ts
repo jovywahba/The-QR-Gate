@@ -126,3 +126,18 @@ export function sanitizeContentForStorage<T>(content: T): T {
     JSON.stringify(content, (key, v) => (TRANSIENT_KEYS.has(key) ? undefined : v)),
   ) as T;
 }
+
+/**
+ * Storage-safe copy of content: strips transient keys AND redacts
+ * secrets we must never persist server-side. Today that's the WiFi
+ * password — a native WiFi QR is only ever saved for the dashboard/
+ * quota, so the password is blanked (it lived only in the QR image,
+ * which the user already downloaded). Never widen what gets stored.
+ */
+export function redactContentForStorage(content: QRContent): QRContent {
+  const clean = sanitizeContentForStorage(content);
+  if (clean.type === "wifi") {
+    return { type: "wifi", data: { ...clean.data, password: "" } };
+  }
+  return clean;
+}

@@ -1,14 +1,44 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { HalfstackEndorser } from "@/components/brand/logo";
 import { PublicQRRenderer } from "@/components/qr-public/public-qr-renderer";
 import type { PublicAssetRow } from "@/components/qr-public/resolver";
+import { recordScan, resolveSlug } from "@/lib/analytics/record";
+import { serverSupabaseConfig } from "@/lib/qr/config";
 import { isQRType } from "@/lib/qr/registry";
 import { isValidSlug } from "@/lib/qr/slug";
 import type { QRContent } from "@/lib/qr/types";
 import { site } from "@/lib/site";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+
+// Each scan is a real visit — never serve a cached page (would miss scans).
+export const dynamic = "force-dynamic";
+
+/** Record one scan for this hosted QR (bots/prefetch/owner excluded). Never throws. */
+async function recordVisit(slug: string): Promise<void> {
+  try {
+    if (!serverSupabaseConfig().configured) return;
+    const admin = createAdminClient();
+    const row = await resolveSlug(admin, slug);
+    if (!row || row.status !== "published") return;
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const h = await headers();
+    await recordScan(admin, {
+      qrCodeId: row.id,
+      ownerId: row.user_id,
+      viewerId: user?.id ?? null,
+      headers: h,
+    });
+  } catch {
+    // Analytics must never break the public page.
+  }
+}
 
 /**
  * The public destination behind every hosted QR. Data comes ONLY
@@ -59,6 +89,8 @@ export default async function PublicQRPage({ params }: { params: Promise<{ slug:
   const { slug } = await params;
   const record = await fetchPublicQR(slug);
   if (!record) notFound();
+
+  await recordVisit(slug);
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">

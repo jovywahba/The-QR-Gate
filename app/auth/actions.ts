@@ -21,11 +21,14 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
 export async function signUp(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
+  // Return the user to their in-progress QR after confirming (safe path only).
+  const next = safeRedirectPath(formData.get("redirect"), "/dashboard");
+  const confirmUrl = `${site.url}/auth/confirm?next=${encodeURIComponent(next)}`;
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: `${site.url}/auth/confirm` },
+    options: { emailRedirectTo: confirmUrl },
   });
   if (error) return { error: error.message };
   return { message: "Check your email to confirm your account." };

@@ -2,45 +2,27 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  QrCode,
-  Users,
-  Building2,
-  Target,
-  CalendarCheck,
-  Settings,
-  CreditCard,
-  type LucideIcon,
-} from "lucide-react";
+import { CreditCard, LayoutDashboard, Plus, QrCode, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type NavItem = { href: string; label: string; icon: LucideIcon };
+type NavItem = { href: string; label: string; icon: LucideIcon; exact?: boolean };
 type NavGroup = { label?: string; items: NavItem[] };
 
 // Single source of truth for the product's primary nav — shared by the desktop
-// sidebar and the mobile sheet so they never drift. (Demo: CRM sections.)
+// sidebar and the mobile sheet so they never drift.
 export const NAV_GROUPS: NavGroup[] = [
-  { items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }] },
   {
-    label: "The QR Gate",
-    items: [{ href: "/dashboard/qr-codes", label: "QR Codes", icon: QrCode }],
-  },
-  {
-    label: "CRM",
     items: [
-      { href: "/contacts", label: "Contacts", icon: Users },
-      { href: "/companies", label: "Companies", icon: Building2 },
-      { href: "/deals", label: "Deals", icon: Target },
-      { href: "/activities", label: "Activities", icon: CalendarCheck },
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
+      { href: "/dashboard/qr-codes", label: "My QR Codes", icon: QrCode },
     ],
   },
   {
     label: "Account",
-    items: [
-      { href: "/settings", label: "Settings", icon: Settings },
-      { href: "/billing", label: "Billing", icon: CreditCard },
-    ],
+    items: [{ href: "/dashboard/billing", label: "Billing", icon: CreditCard }],
+  },
+  {
+    items: [{ href: "/", label: "Create New QR", icon: Plus }],
   },
 ];
 
@@ -57,7 +39,7 @@ export function AppNav({ onNavigate }: { onNavigate?: () => void }) {
             </div>
           ) : null}
           {group.items.map((item) => {
-            const active = pathname.startsWith(item.href);
+            const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
             const Icon = item.icon;
             return (
               <Link

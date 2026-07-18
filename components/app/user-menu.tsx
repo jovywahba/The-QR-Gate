@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Settings, CreditCard, LogOut } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { CreditCard, LayoutDashboard, LogOut, QrCode } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -13,10 +13,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { signOut } from "@/app/auth/actions";
 
-// The shell's account menu — avatar + dropdown with sign-out, so users can leave
-// from anywhere in the product (previously only reachable from Settings).
-export function UserMenu({ email }: { email?: string }) {
-  const initials = (email ?? "?").slice(0, 2).toUpperCase();
+export type Account = {
+  email: string;
+  name?: string | null;
+  avatarUrl?: string | null;
+};
+
+function initialsFor(account: Account): string {
+  const base = account.name || account.email || "?";
+  const parts = base.trim().split(/[\s@.]+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
+}
+
+// The shell's account menu — avatar + dropdown so users can reach their
+// dashboard, QR codes, billing, and sign out from anywhere in the product.
+export function UserMenu({ account }: { account: Account }) {
+  const label = account.name || account.email;
 
   return (
     <DropdownMenu>
@@ -26,26 +38,33 @@ export function UserMenu({ email }: { email?: string }) {
           aria-label="Account menu"
         >
           <Avatar className="size-7">
+            {account.avatarUrl ? <AvatarImage src={account.avatarUrl} alt="" /> : null}
             <AvatarFallback className="bg-primary text-xs font-semibold text-primary-foreground">
-              {initials}
+              {initialsFor(account)}
             </AvatarFallback>
           </Avatar>
-          <span className="truncate text-xs text-muted-foreground">{email}</span>
+          <span className="truncate text-xs text-muted-foreground">{label}</span>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="truncate font-normal text-muted-foreground">
-          {email}
+          {account.email}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/settings">
-            <Settings />
-            Settings
+          <Link href="/dashboard">
+            <LayoutDashboard />
+            Dashboard
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/billing">
+          <Link href="/dashboard/qr-codes">
+            <QrCode />
+            My QR Codes
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard/billing">
             <CreditCard />
             Billing
           </Link>

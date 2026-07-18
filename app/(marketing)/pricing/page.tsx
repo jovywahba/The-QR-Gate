@@ -6,7 +6,7 @@ import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Pricing",
-  description: `${site.name} pricing — half of ${site.incumbent.name}. ${site.pricing.trialDays}-day free trial.`,
+  description: `${site.name} pricing — a free plan with ${site.pricing.freeQrLimit} QR codes, and Pro at $${site.pricing.amount}/mo for unlimited codes and scan analytics.`,
 };
 
 export default function PricingPage() {

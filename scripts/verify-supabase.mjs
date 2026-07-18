@@ -142,10 +142,14 @@ try {
     .eq("id", draftA.id);
   const { data: draftRpc } = await anon.rpc("get_public_qr", { p_slug: slug });
   check("get_public_qr hides drafts", "deny", draftRpc ? "allow" : "deny");
-  await A.client
-    .from("qr_codes")
-    .update({ status: "published", published_at: new Date().toISOString() })
-    .eq("id", draftA.id);
+  // Publish via the quota function when it exists (post-0002); else direct (pre-0002).
+  const { error: pubActErr } = await A.client.rpc("try_activate_qr", { p_qr_id: draftA.id });
+  if (pubActErr) {
+    await A.client
+      .from("qr_codes")
+      .update({ status: "published", published_at: new Date().toISOString() })
+      .eq("id", draftA.id);
+  }
   const { data: pubRpc } = await anon.rpc("get_public_qr", { p_slug: slug });
   check("get_public_qr returns published", "allow", pubRpc ? "allow" : "deny");
   check(
@@ -158,6 +162,76 @@ try {
   await A.client.from("qr_codes").update({ status: "archived" }).eq("id", draftA.id);
   const { data: archRpc } = await anon.rpc("get_public_qr", { p_slug: slug });
   check("get_public_qr hides archived", "deny", archRpc ? "allow" : "deny");
+
+  // ── Part 5: auth / billing / analytics (needs migration 0002) ──
+  const { data: planA, error: planErr } = await A.client.rpc("get_user_plan_status");
+  if (planErr && (planErr.code === "PGRST202" || /find the function|does not exist/i.test(planErr.message ?? ""))) {
+    console.log("\nℹ️  Migration 0002 not applied — skipping auth/billing/analytics checks.");
+    console.log("   Apply supabase/SUPABASE_AUTH_BILLING_ANALYTICS.sql in the SQL editor, then re-run.\n");
+  } else {
+    check("plan RPC returns free for a new user", "free", planA?.plan ?? `err(${planErr?.code})`);
+    check("free limit is 3", 3, planA?.limit ?? null);
+
+    // Quota (A had 0 active after the archive above): 3 activate, the 4th is blocked.
+    const ids = [];
+    for (let i = 0; i < 4; i++) {
+      const { data } = await A.client
+        .from("qr_codes")
+        .insert({
+          user_id: A.id,
+          type: "website",
+          status: "draft",
+          content: { type: "website", data: { url: "https://example.com" } },
+          design: {},
+        })
+        .select("id")
+        .single();
+      ids.push(data?.id);
+    }
+    const acts = [];
+    for (const id of ids) {
+      const { data } = await A.client.rpc("try_activate_qr", { p_qr_id: id });
+      acts.push(data);
+    }
+    check("first 3 QR activations allowed", "allow", acts.slice(0, 3).every((a) => a?.allowed) ? "allow" : "deny");
+    check("4th activation blocked by free quota", "quota_exceeded", acts[3]?.reason ?? "?");
+
+    // The quota can't be bypassed by a direct PATCH to status='published'.
+    const { data: bypassRow } = await A.client
+      .from("qr_codes")
+      .insert({ user_id: A.id, type: "website", status: "draft", content: { type: "website", data: { url: "https://example.com" } }, design: {} })
+      .select("id")
+      .single();
+    const { error: bypassErr } = await A.client
+      .from("qr_codes")
+      .update({ status: "published" })
+      .eq("id", bypassRow?.id);
+    check("direct PATCH to published is blocked", "deny", bypassErr ? "deny" : "allow");
+
+    // Scan-event RLS.
+    const pubId = ids[0];
+    await admin.from("qr_scan_events").insert({ qr_code_id: pubId, device_type: "mobile", is_bot: false, visitor_hash: "hashX" });
+    const { data: aScans } = await A.client.from("qr_scan_events").select("id").eq("qr_code_id", pubId);
+    check("owner reads own scan events", "allow", (aScans ?? []).length > 0 ? "allow" : "deny");
+    const { data: bScans } = await B.client.from("qr_scan_events").select("id").eq("qr_code_id", pubId);
+    check("B cannot read A's scan events", "deny", (bScans ?? []).length === 0 ? "deny" : "allow");
+    const { data: anonScans } = await anon.from("qr_scan_events").select("id");
+    check("anon cannot list scan events", "deny", (anonScans ?? []).length === 0 ? "deny" : "allow");
+    const { error: aInsScan } = await A.client.from("qr_scan_events").insert({ qr_code_id: pubId, is_bot: false });
+    check("users cannot insert scan events", "deny", aInsScan ? "deny" : "allow");
+
+    // Analytics summary ownership.
+    const { data: sumA } = await A.client.rpc("get_qr_scan_summary", { p_qr_id: pubId, p_days: 30 });
+    check("owner can read analytics summary", "yes", sumA?.authorized ? "yes" : "no");
+    const { data: sumB } = await B.client.rpc("get_qr_scan_summary", { p_qr_id: pubId, p_days: 30 });
+    check("B cannot read A's analytics summary", "deny", sumB && sumB.authorized === false ? "deny" : "allow");
+
+    // Subscriptions are service-role only.
+    const { error: aInsSub } = await A.client
+      .from("subscriptions")
+      .insert({ id: "sub_fake_qa", user_id: A.id, status: "active" });
+    check("users cannot self-insert subscriptions", "deny", aInsSub ? "deny" : "allow");
+  }
 } finally {
   // ── Cleanup ──
   try {

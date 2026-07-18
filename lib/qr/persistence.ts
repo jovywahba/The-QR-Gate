@@ -27,6 +27,7 @@ export type SafeDraft = {
   content: QRContent | null;
   design: QRWizardState["design"];
   generatedPayload: string;
+  trackingEnabled?: boolean;
   qrCodeId?: string;
   publicUrl?: string;
   slug?: string;
@@ -70,6 +71,7 @@ export function toSafeDraft(state: QRWizardState): SafeDraft {
     content: content ? stripTransient(content) : null,
     design,
     generatedPayload,
+    trackingEnabled: state.trackingEnabled,
     qrCodeId: state.qrCodeId,
     publicUrl: state.publicUrl,
     slug: state.slug,
@@ -121,6 +123,7 @@ export function loadDraft(): QRWizardState | null {
       content: draft.content && typeof draft.content === "object" ? draft.content : null,
       design: migrateDesign(draft.design),
       generatedPayload: typeof draft.generatedPayload === "string" ? draft.generatedPayload : "",
+      trackingEnabled: draft.trackingEnabled === true,
       qrCodeId: typeof draft.qrCodeId === "string" ? draft.qrCodeId : undefined,
       publicUrl: typeof draft.publicUrl === "string" ? draft.publicUrl : undefined,
       slug: typeof draft.slug === "string" ? draft.slug : undefined,

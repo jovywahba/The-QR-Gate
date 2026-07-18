@@ -49,13 +49,16 @@ export const site = {
     sourcedOn: "", // TODO: YYYY-MM-DD when verified
   },
 
-  // ── Our pricing (≈ 1/2, rounded clean) ───────────────────────
+  // ── Our pricing ──────────────────────────────────────────────
+  //    Free: 3 active QR codes. Pro: unlimited + scan analytics.
   pricing: {
-    amount: 60, // TODO
+    amount: 10, // The QR Gate Pro — $10/mo
     currency: "usd",
     interval: "month" as "month" | "year",
-    unit: "seat", // "seat" | "user" | "" (flat)
-    trialDays: 7,
+    unit: "", // flat (not per-seat)
+    trialDays: 0, // no trial — clean $10/mo
+    planName: "The QR Gate Pro",
+    freeQrLimit: 3,
   },
 
   // ── Halfstack endorser brand ─────────────────────────────────

@@ -4,6 +4,7 @@ import { Suspense, useActionState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { signIn, type AuthState } from "@/app/auth/actions";
+import { AuthDivider, GoogleButton } from "@/components/auth/google-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,13 +26,16 @@ function SignInForm() {
   const redirectTo = useSearchParams().get("redirect") ?? "";
 
   return (
-    <form action={action} className="flex flex-col gap-4">
-      {redirectTo && <input type="hidden" name="redirect" value={redirectTo} />}
+    <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-lg font-semibold">Sign in</h1>
         <p className="text-sm text-muted-foreground">Welcome back.</p>
       </div>
-      <div className="flex flex-col gap-1.5">
+      <GoogleButton next={redirectTo || undefined} />
+      <AuthDivider />
+      <form action={action} className="flex flex-col gap-4">
+        {redirectTo && <input type="hidden" name="redirect" value={redirectTo} />}
+        <div className="flex flex-col gap-1.5">
         <Label htmlFor="email">Email</Label>
         <Input id="email" name="email" type="email" autoComplete="email" required />
       </div>
@@ -48,6 +52,7 @@ function SignInForm() {
       <Button type="submit" disabled={pending}>
         {pending ? "Signing in…" : "Sign in"}
       </Button>
+      </form>
       <p className="text-center text-sm text-muted-foreground">
         No account?{" "}
         <Link
@@ -57,6 +62,6 @@ function SignInForm() {
           Start free
         </Link>
       </p>
-    </form>
+    </div>
   );
 }

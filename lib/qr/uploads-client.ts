@@ -18,6 +18,8 @@ export class UploadError extends Error {
     message: string,
     public status?: number,
     public missing?: string[],
+    /** Present on 402 quota errors so the UI can show the paywall. */
+    public quota?: { activeCount: number; limit: number },
   ) {
     super(message);
   }
@@ -25,8 +27,18 @@ export class UploadError extends Error {
 
 async function parseError(response: Response): Promise<UploadError> {
   try {
-    const body = (await response.json()) as { error?: string; missing?: string[] };
-    return new UploadError(body.error ?? "Something went wrong.", response.status, body.missing);
+    const body = (await response.json()) as {
+      error?: string;
+      missing?: string[];
+      code?: string;
+      activeCount?: number;
+      limit?: number;
+    };
+    const quota =
+      body.code === "quota_exceeded"
+        ? { activeCount: body.activeCount ?? 3, limit: body.limit ?? 3 }
+        : undefined;
+    return new UploadError(body.error ?? "Something went wrong.", response.status, body.missing, quota);
   } catch {
     return new UploadError("Something went wrong.", response.status);
   }
@@ -148,12 +160,23 @@ export async function publishQR(args: {
   type: QRType;
   content: unknown;
   design: unknown;
-}): Promise<{ qrCodeId: string; slug: string; publicUrl: string }> {
+  trackingEnabled?: boolean;
+}): Promise<{
+  qrCodeId: string;
+  slug: string | null;
+  publicUrl: string | null;
+  trackingMode: string;
+}> {
   const response = await fetch("/api/qr/publish", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(args),
   });
   if (!response.ok) throw await parseError(response);
-  return (await response.json()) as { qrCodeId: string; slug: string; publicUrl: string };
+  return (await response.json()) as {
+    qrCodeId: string;
+    slug: string | null;
+    publicUrl: string | null;
+    trackingMode: string;
+  };
 }

@@ -16,3 +16,8 @@ export function getAppUrl(): string {
 export function publicQrUrl(slug: string): string {
   return `${getAppUrl()}/q/${slug}`;
 }
+
+/** The tracked short link a direct-URL QR can encode: {appUrl}/r/{slug}. */
+export function trackedRedirectUrl(slug: string): string {
+  return `${getAppUrl()}/r/${slug}`;
+}

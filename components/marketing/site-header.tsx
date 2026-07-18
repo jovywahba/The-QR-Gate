@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
-import { Button } from "@/components/ui/button";
+import { AccountNav } from "@/components/marketing/account-nav";
 import { SmoothLink } from "@/components/marketing/smooth-link";
 
 // On-page anchors smooth-scroll (via SmoothLink); /docs and /blog are real pages.
@@ -30,18 +29,7 @@ export function SiteHeader() {
             ))}
           </nav>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/sign-in">Sign in</Link>
-          </Button>
-          {/* DEV ONLY — jump straight to the product shell without an auth flow. Remove before launch. */}
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/dashboard">Dashboard</Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link href="/sign-up">Start free</Link>
-          </Button>
-        </div>
+        <AccountNav />
       </div>
     </header>
   );

@@ -24,7 +24,8 @@ import { useQRWizard } from "./use-qr-wizard";
  * disabled button.
  */
 export function DownloadPanel() {
-  const { state, validation, readability, needsPublishing } = useQRWizard();
+  const { state, validation, readability, needsCommit, committed, needsPublishing, user, authReady } =
+    useQRWizard();
   const [format, setFormat] = React.useState<QRExportFormat>("png");
   const [size, setSize] = React.useState<PNGExportSize>(1024);
   const [downloading, setDownloading] = React.useState(false);
@@ -33,14 +34,17 @@ export function DownloadPanel() {
     if (!state.selectedType) return "Select a QR type first.";
     if (!validation.valid) return "The content is incomplete — fix the Add Content step.";
     if (!readability.isSafe) return "The design has readability errors — fix them in Design QR Code.";
-    if (needsPublishing && state.publishingStatus !== "published") {
-      return state.slug
-        ? "You have unpublished changes — publish them before downloading."
-        : "Publish first — the QR encodes your published page's URL.";
+    if (needsCommit && !committed) {
+      if (authReady && !user) return "Sign in above to save and download your QR.";
+      return needsPublishing
+        ? state.slug
+          ? "You have unsaved changes — save them above before downloading."
+          : "Save your QR above — it encodes your hosted link."
+        : "Save your QR to your account above to enable download.";
     }
     if (!state.generatedPayload) return "Nothing to encode yet.";
     return null;
-  }, [state, validation.valid, readability.isSafe, needsPublishing]);
+  }, [state, validation.valid, readability.isSafe, needsCommit, committed, needsPublishing, user, authReady]);
 
   const disabled = blockingReason !== null || downloading;
 

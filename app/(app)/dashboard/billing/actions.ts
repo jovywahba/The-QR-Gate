@@ -1,40 +1,47 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { getStripe, isStripeConfigured } from "@/lib/stripe/server";
-import { stripeConfig } from "@/lib/stripe/config";
-import { createClient } from "@/lib/supabase/server";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 import { site } from "@/lib/site";
+import { getStripe, isBillingConfigured, proPriceId } from "@/lib/stripe/server";
+import { createClient } from "@/lib/supabase/server";
 
-export async function startCheckout() {
-  // Billing is optional — never crash the app when Stripe isn't set up.
-  if (!isStripeConfigured()) redirect("/billing?status=unconfigured");
+/**
+ * Start a Stripe Checkout for The QR Gate Pro ($10/mo). The price is
+ * taken ONLY from server env (STRIPE_PRICE_PRO_MONTHLY) — a browser
+ * can never pass a price id. `returnTo` lets the paywall bring the
+ * user back to their in-progress QR after paying (safe path only).
+ */
+export async function startCheckout(formData?: FormData) {
+  if (!isBillingConfigured()) redirect("/dashboard/billing?status=unconfigured");
   const stripe = getStripe();
+  const price = proPriceId()!;
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/sign-in");
+  if (!user) redirect("/sign-in?redirect=/dashboard/billing");
+
+  const returnTo = safeRedirectPath(formData?.get("returnTo"), "/dashboard/billing?status=success");
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("stripe_customer_id")
     .eq("id", user.id)
     .maybeSingle();
-
   const customerId = profile?.stripe_customer_id ?? undefined;
 
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
-    line_items: [{ price: stripeConfig.priceId, quantity: 1 }],
-    subscription_data: { trial_period_days: stripeConfig.trialDays },
-    success_url: `${site.url}/billing?status=success`,
-    cancel_url: `${site.url}/billing?status=cancelled`,
+    line_items: [{ price, quantity: 1 }],
+    success_url: `${site.url}${returnTo}`,
+    cancel_url: `${site.url}/dashboard/billing?status=cancelled`,
     client_reference_id: user.id,
     metadata: { user_id: user.id },
     customer: customerId,
     customer_email: customerId ? undefined : (user.email ?? undefined),
+    allow_promotion_codes: true,
   });
 
   if (!session.url) throw new Error("Stripe did not return a checkout URL");
@@ -42,14 +49,14 @@ export async function startCheckout() {
 }
 
 export async function openPortal() {
-  if (!isStripeConfigured()) redirect("/billing?status=unconfigured");
+  if (!isBillingConfigured()) redirect("/dashboard/billing?status=unconfigured");
   const stripe = getStripe();
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/sign-in");
+  if (!user) redirect("/sign-in?redirect=/dashboard/billing");
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -57,11 +64,11 @@ export async function openPortal() {
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!profile?.stripe_customer_id) redirect("/billing");
+  if (!profile?.stripe_customer_id) redirect("/dashboard/billing");
 
   const session = await stripe.billingPortal.sessions.create({
     customer: profile.stripe_customer_id,
-    return_url: `${site.url}/billing`,
+    return_url: `${site.url}/dashboard/billing`,
   });
 
   redirect(session.url);

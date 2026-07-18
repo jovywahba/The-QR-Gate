@@ -22,16 +22,13 @@ function parseStep(raw: string | undefined, type: QRType | null): WizardStep {
   return n === 2 || n === 3 || n === 4 ? (n as WizardStep) : 1;
 }
 
-async function loadSavedRecord(id: string): Promise<{ record: SavedQRRecord; type: QRType } | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect(`/sign-in?redirect=${encodeURIComponent(`/create?id=${id}&step=2`)}`);
-
+async function loadSavedRecord(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  id: string,
+): Promise<{ record: SavedQRRecord; type: QRType } | null> {
   const { data: row } = await supabase
     .from("qr_codes")
-    .select("id, type, status, slug, content, design, destination_url")
+    .select("id, type, status, slug, content, design, destination_url, tracking_mode")
     .eq("id", id)
     .maybeSingle();
   if (!row || !isQRType(row.type)) return null;
@@ -46,6 +43,7 @@ async function loadSavedRecord(id: string): Promise<{ record: SavedQRRecord; typ
       slug: row.slug,
       publicUrl: row.destination_url,
       published: row.status === "published",
+      trackingMode: (row.tracking_mode as string | null) ?? undefined,
     },
   };
 }
@@ -58,9 +56,19 @@ export default async function CreatePage({
   const params = await searchParams;
 
   if (params.id && /^[0-9a-f-]{36}$/.test(params.id)) {
+    // Auth check first — the redirect() must NOT be inside a try/catch
+    // (it throws a NEXT_REDIRECT control-flow signal the framework needs).
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      redirect(`/sign-in?redirect=${encodeURIComponent(`/create?id=${params.id}&step=${params.step ?? "2"}`)}`);
+    }
+
     let loaded: Awaited<ReturnType<typeof loadSavedRecord>> = null;
     try {
-      loaded = await loadSavedRecord(params.id);
+      loaded = await loadSavedRecord(supabase, params.id);
     } catch {
       loaded = null;
     }

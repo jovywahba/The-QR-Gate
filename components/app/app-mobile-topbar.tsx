@@ -13,11 +13,11 @@ import {
 } from "@/components/ui/sheet";
 import { site } from "@/lib/site";
 import { AppNav } from "./app-nav";
-import { UserMenu } from "./user-menu";
+import { UserMenu, type Account } from "./user-menu";
 
 // Shown only below md: hamburger opens the same nav in a left Sheet. The desktop
 // sidebar is hidden at this breakpoint (see app-sidebar).
-export function AppMobileTopbar({ email }: { email?: string }) {
+export function AppMobileTopbar({ account }: { account: Account }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -44,7 +44,7 @@ export function AppMobileTopbar({ email }: { email?: string }) {
         {site.name}
       </Link>
 
-      <UserMenu email={email} />
+      <UserMenu account={account} />
     </header>
   );
 }

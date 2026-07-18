@@ -1,12 +1,19 @@
 "use client";
 
 import * as React from "react";
+import { FREE_PLAN_FALLBACK, parsePlanStatus, type PlanStatus } from "@/lib/billing/plan";
 import { publicSupabaseConfig } from "@/lib/qr/config";
 import { defaultContentFor, defaultDesign, initialWizardState, migrateDesign } from "@/lib/qr/defaults";
-import { buildPayload, requiresPublishing } from "@/lib/qr/payloads";
+import { buildPayload } from "@/lib/qr/payloads";
 import { clearDraft, loadDraft, saveDraft } from "@/lib/qr/persistence";
 import { evaluateDesign, type QRReadabilityResult } from "@/lib/qr/readability";
 import { getQRType, isQRType } from "@/lib/qr/registry";
+import {
+  canToggleTracking as canToggle,
+  encodesServerUrl,
+  resolveTrackingMode,
+  type TrackingMode,
+} from "@/lib/qr/tracking";
 import type { QRContent, QRDesignOptions, QRType, QRWizardState, WizardStep } from "@/lib/qr/types";
 import { publishQR, UploadError } from "@/lib/qr/uploads-client";
 import { validateContent, type ContentValidation } from "@/lib/qr/validation";
@@ -49,19 +56,34 @@ type WizardContextValue = {
   /** Anything worth confirming before Start Over discards it? */
   isDirty: boolean;
 
-  /* ── Publishing (hosted types) ── */
-  /** Does the CURRENT content need a published /q/[slug] page? */
+  /* ── Commit + publishing ── */
+  /** Does the CURRENT content encode one of OUR URLs (hosted or tracked)? */
   needsPublishing: boolean;
+  /** Must this QR be committed to the account before download? (Supabase on) */
+  needsCommit: boolean;
+  /** Has the current QR been committed (published) to the account? */
+  committed: boolean;
+  /** How the current QR is encoded/tracked. */
+  trackingMode: TrackingMode;
+  /** Can the user toggle scan tracking for this content (direct URL types)? */
+  canToggleTracking: boolean;
+  trackingEnabled: boolean;
+  setTrackingEnabled: (value: boolean) => void;
   /** Signed-in user (null when signed out or Supabase unconfigured). */
   user: { id: string; email?: string } | null;
   /** False until the auth check settles (avoids sign-in flash). */
   authReady: boolean;
+  /** The signed-in user's plan/quota (null until loaded). */
+  plan: PlanStatus | null;
+  /** Set when a commit was blocked by the free quota — drives the paywall. */
+  paywall: { activeCount: number; limit: number } | null;
+  dismissPaywall: () => void;
   /** Supabase publishing configuration (client-visible part). */
   publishingConfig: { configured: boolean; missing: string[] };
   publishError: string | null;
-  /** Publish (or republish) the current hosted content. */
-  publish: () => Promise<void>;
-  /** Save the draft and go sign in, returning to the current step. */
+  /** Commit (create/update + activate) the current QR. Enforces the quota. */
+  commit: () => Promise<void>;
+  /** Save the draft and go sign in, returning to the Download step. */
   signInToPublish: () => void;
   /** First upload creates the server-side draft row — remember it. */
   registerQrCodeId: (qrCodeId: string) => void;
@@ -80,13 +102,18 @@ export function useQRWizard(): WizardContextValue {
  * hosted types ONLY ever encode the published /q/[slug] URL — never a
  * localhost object URL, never an unpublished guess.
  */
-function derivePayload(state: Pick<QRWizardState, "content" | "publishingStatus" | "publicUrl">): string {
+function derivePayload(
+  state: Pick<QRWizardState, "content" | "publishingStatus" | "publicUrl" | "trackingEnabled">,
+): string {
   const { content } = state;
   if (!content) return "";
   if (!validateContent(content).valid) return "";
-  if (requiresPublishing(content)) {
+  const mode = resolveTrackingMode(content, state.trackingEnabled);
+  // hosted + tracked-redirect encode one of OUR URLs → only after commit.
+  if (encodesServerUrl(mode)) {
     return state.publishingStatus === "published" && state.publicUrl ? state.publicUrl : "";
   }
+  // direct / native encode the payload itself — available before commit.
   return buildPayload(content);
 }
 
@@ -110,6 +137,7 @@ export type WizardInitialRecord = {
   slug: string | null;
   publicUrl: string | null;
   published: boolean;
+  trackingMode?: string;
 };
 
 export function QRWizardProvider({
@@ -138,6 +166,7 @@ export function QRWizardProvider({
         slug: initialRecord.slug ?? undefined,
         publicUrl: initialRecord.publicUrl ?? undefined,
         publishingStatus: initialRecord.published ? "published" : "idle",
+        trackingEnabled: initialRecord.trackingMode === "redirect",
       };
     }
     return {
@@ -152,6 +181,8 @@ export function QRWizardProvider({
   const [publishError, setPublishError] = React.useState<string | null>(null);
   const [user, setUser] = React.useState<{ id: string; email?: string } | null>(null);
   const [authReady, setAuthReady] = React.useState(false);
+  const [plan, setPlan] = React.useState<PlanStatus | null>(null);
+  const [paywall, setPaywall] = React.useState<{ activeCount: number; limit: number } | null>(null);
   const publishingConfig = React.useMemo(() => publicSupabaseConfig(), []);
 
   /* Track the signed-in user (skipped entirely when Supabase isn't configured). */
@@ -181,6 +212,25 @@ export function QRWizardProvider({
       sub.subscription.unsubscribe();
     };
   }, [publishingConfig.configured]);
+
+  /* The signed-in user's plan/quota — refreshed on auth change + after commit. */
+  const refreshPlan = React.useCallback(async () => {
+    if (!publishingConfig.configured || !user) {
+      setPlan(null);
+      return;
+    }
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.rpc("get_user_plan_status");
+      setPlan(error || data == null ? FREE_PLAN_FALLBACK : parsePlanStatus(data));
+    } catch {
+      setPlan(FREE_PLAN_FALLBACK);
+    }
+  }, [publishingConfig.configured, user]);
+
+  React.useEffect(() => {
+    void refreshPlan();
+  }, [refreshPlan]);
 
   /* Hydrate content/design from the safe draft. URL wins for step + type.
      Skipped entirely when editing a saved record (the DB row wins). */
@@ -223,7 +273,7 @@ export function QRWizardProvider({
   const generatedPayload = React.useMemo(
     () => derivePayload(state),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state.content, state.publishingStatus, state.publicUrl],
+    [state.content, state.publishingStatus, state.publicUrl, state.trackingEnabled],
   );
   const fullState = React.useMemo<QRWizardState>(
     () => ({ ...state, generatedPayload }),
@@ -311,8 +361,21 @@ export function QRWizardProvider({
   );
 
   /**
+   * The auth gate. Steps 1–3 are open to everyone; Download (Step 4)
+   * requires an account. Save the safe draft AT Step 4, then sign in
+   * and return to that exact step — the QR is never lost.
+   */
+  const gateToDownload = React.useCallback(() => {
+    saveDraft({ ...fullState, step: 4 });
+    const type = fullState.selectedType;
+    const returnTo = type ? `/create?type=${type}&step=4` : "/dashboard";
+    window.location.assign(`/sign-in?redirect=${encodeURIComponent(returnTo)}`);
+  }, [fullState]);
+
+  /**
    * Continue from `step`. Step 2 blocks until the content validates;
-   * Step 3 blocks on readability ERRORS (warnings pass through).
+   * Step 3 blocks on readability ERRORS (warnings pass through) and,
+   * before Download, requires the user to be signed in.
    */
   const continueFrom = React.useCallback(
     (step: WizardStep) => {
@@ -321,14 +384,20 @@ export function QRWizardProvider({
         setSubmitAttempt((n) => n + 1);
         return;
       }
-      if (step === 3 && !readability.isSafe) {
-        document.getElementById("qr-readability")?.scrollIntoView({ block: "center" });
-        document.getElementById("qr-readability")?.focus();
-        return;
+      if (step === 3) {
+        if (!readability.isSafe) {
+          document.getElementById("qr-readability")?.scrollIntoView({ block: "center" });
+          document.getElementById("qr-readability")?.focus();
+          return;
+        }
+        if (publishingConfig.configured && authReady && !user) {
+          gateToDownload();
+          return;
+        }
       }
       goToStep((step + 1) as WizardStep);
     },
-    [goToStep, validation.valid, readability.isSafe],
+    [goToStep, validation.valid, readability.isSafe, publishingConfig.configured, authReady, user, gateToDownload],
   );
 
   const updateContent = React.useCallback((content: QRContent) => {
@@ -346,58 +415,88 @@ export function QRWizardProvider({
     setState((prev) => (prev.qrCodeId === qrCodeId ? prev : { ...prev, qrCodeId }));
   }, []);
 
-  const needsPublishing = React.useMemo(
-    () => (fullState.content ? requiresPublishing(fullState.content) : false),
+  const trackingMode = React.useMemo<TrackingMode>(
+    () => (fullState.content ? resolveTrackingMode(fullState.content, fullState.trackingEnabled) : "direct"),
+    [fullState.content, fullState.trackingEnabled],
+  );
+
+  /** Encodes one of our URLs (hosted or tracked redirect) → needs a committed slug. */
+  const needsPublishing = React.useMemo(() => encodesServerUrl(trackingMode), [trackingMode]);
+
+  const canToggleTracking = React.useMemo(
+    () => (fullState.content ? canToggle(fullState.content) : false),
     [fullState.content],
   );
 
-  const signInToPublish = React.useCallback(() => {
-    // Flush the draft synchronously, then leave — sessionStorage brings
-    // the user back to this exact type + step after signing in.
-    saveDraft(fullState);
-    const returnTo = urlFor(fullState);
-    window.location.assign(`/sign-in?redirect=${encodeURIComponent(returnTo)}`);
-  }, [fullState]);
+  const setTrackingEnabled = React.useCallback((value: boolean) => {
+    setState((prev) => ({
+      ...prev,
+      trackingEnabled: value,
+      // Changing what the QR encodes requires a re-commit before it's live.
+      publishingStatus: prev.publishingStatus === "published" ? "idle" : prev.publishingStatus,
+    }));
+    setPublishError(null);
+    setPaywall(null);
+  }, []);
 
-  const publish = React.useCallback(async () => {
+  const dismissPaywall = React.useCallback(() => setPaywall(null), []);
+
+  /** Save-the-draft-and-sign-in gate (returns to the Download step). */
+  const signInToPublish = gateToDownload;
+
+  /**
+   * Commit the current QR to the account: create/update the row, copy
+   * assets (hosted), set the tracking mode, and atomically activate it
+   * (server-side quota). A 402 means the free quota is reached → show
+   * the paywall, never a generic error.
+   */
+  const commit = React.useCallback(async () => {
     const content = fullState.content;
     if (!content || fullState.publishingStatus === "saving") return;
     if (!validateContent(content).valid) {
       setSubmitAttempt((n) => n + 1);
       return;
     }
-    if (!requiresPublishing(content)) return;
     if (!publishingConfig.configured) {
-      setPublishError(
-        `Publishing isn't configured — missing ${publishingConfig.missing.join(", ")}.`,
-      );
+      setPublishError(`Publishing isn't configured — missing ${publishingConfig.missing.join(", ")}.`);
       return;
     }
     if (!user) {
-      signInToPublish();
+      gateToDownload();
       return;
     }
 
     setState((prev) => ({ ...prev, publishingStatus: "saving" }));
     setPublishError(null);
+    setPaywall(null);
     try {
       const result = await publishQR({
         qrCodeId: fullState.qrCodeId,
         type: content.type,
         content,
         design: fullState.design,
+        trackingEnabled: fullState.trackingEnabled,
       });
       setState((prev) => ({
         ...prev,
         qrCodeId: result.qrCodeId,
-        slug: result.slug,
-        publicUrl: result.publicUrl,
+        slug: result.slug ?? undefined,
+        publicUrl: result.publicUrl ?? undefined,
         publishingStatus: "published",
       }));
+      void refreshPlan();
     } catch (error) {
       setState((prev) => ({ ...prev, publishingStatus: "error" }));
       if (error instanceof UploadError && error.status === 401) {
-        signInToPublish();
+        gateToDownload();
+        return;
+      }
+      if (error instanceof UploadError && error.status === 402) {
+        setPaywall({
+          activeCount: error.quota?.activeCount ?? 3,
+          limit: error.quota?.limit ?? 3,
+        });
+        void refreshPlan();
         return;
       }
       setPublishError(
@@ -405,10 +504,10 @@ export function QRWizardProvider({
           ? error.missing
             ? `${error.message} Missing: ${error.missing.join(", ")}.`
             : error.message
-          : "Publishing failed. Please try again.",
+          : "Couldn't save your QR. Please try again.",
       );
     }
-  }, [fullState, publishingConfig, signInToPublish, user]);
+  }, [fullState, publishingConfig, gateToDownload, user, refreshPlan]);
 
   const updateDesign = React.useCallback((design: QRDesignOptions) => {
     setState((prev) => ({ ...prev, design }));
@@ -457,11 +556,20 @@ export function QRWizardProvider({
       startOver,
       isDirty,
       needsPublishing,
+      needsCommit: publishingConfig.configured,
+      committed: fullState.publishingStatus === "published",
+      trackingMode,
+      canToggleTracking,
+      trackingEnabled: fullState.trackingEnabled,
+      setTrackingEnabled,
       user,
       authReady,
+      plan,
+      paywall,
+      dismissPaywall,
       publishingConfig,
       publishError,
-      publish,
+      commit,
       signInToPublish,
       registerQrCodeId,
     }),
@@ -481,11 +589,17 @@ export function QRWizardProvider({
       startOver,
       isDirty,
       needsPublishing,
+      trackingMode,
+      canToggleTracking,
+      setTrackingEnabled,
       user,
       authReady,
+      plan,
+      paywall,
+      dismissPaywall,
       publishingConfig,
       publishError,
-      publish,
+      commit,
       signInToPublish,
       registerQrCodeId,
     ],

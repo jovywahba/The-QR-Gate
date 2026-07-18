@@ -23,7 +23,8 @@ import { VideoForm } from "./forms/video-form";
 import { WebsiteForm } from "./forms/website-form";
 import { WhatsAppForm } from "./forms/whatsapp-form";
 import { WiFiForm } from "./forms/wifi-form";
-import { PublishPanel } from "./publish-panel";
+import { PaywallDialog } from "./paywall-dialog";
+import { FinalizePanel } from "./publish-panel";
 import { QRTypeGrid } from "./qr-type-grid";
 import { useQRWizard } from "./use-qr-wizard";
 
@@ -107,33 +108,33 @@ export function QRStepContent() {
     );
   }
 
-  // Step 4 — Download (hosted types publish here first)
+  // Step 4 — Download. Every QR is saved to the account here (auth + quota gate).
   return (
     <section aria-label={stepName}>
       <StepHeading
         sub={
           needsPublishing
-            ? "Publish your page, then download the QR as a 1024 × 1024 PNG."
-            : "Your QR code is ready. Download it as a 1024 × 1024 PNG."
+            ? "Save your QR to your account, then download it as a 1024 × 1024 PNG."
+            : "Save your QR to your account, then download it as a 1024 × 1024 PNG."
         }
       >
         Download QR Code
       </StepHeading>
       <div className="mx-auto max-w-sm space-y-3">
-        {needsPublishing && <PublishPanel />}
+        <FinalizePanel />
         <QRRenderer
           payload={state.generatedPayload}
           design={state.design}
           emptyHint={
             needsPublishing
-              ? "Publish first — the QR encodes your published page's URL."
+              ? "Save your QR above — the code encodes your hosted link."
               : "Nothing to download yet — go back and complete the content step."
           }
         />
         {state.generatedPayload && state.selectedType && (
           <div className="rounded-lg border bg-card px-3 py-2">
             <p className="font-mono text-[11px] tracking-[0.14em] text-muted-foreground uppercase">
-              {needsPublishing ? "Published destination" : "Direct destination"}
+              {needsPublishing ? "Encoded link" : "Direct destination"}
             </p>
             <p className="mt-0.5 font-mono text-xs break-all">
               {state.generatedPayload.length > 200
@@ -143,6 +144,7 @@ export function QRStepContent() {
           </div>
         )}
         <DownloadPanel />
+        <PaywallDialog />
         {!readability.isSafe && (
           <div role="alert" className="rounded-lg border border-destructive/50 bg-destructive/5 p-3">
             <p className="text-sm font-semibold text-destructive">This design isn&apos;t scan-safe</p>

@@ -9,19 +9,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) redirect("/sign-in?redirect=/dashboard");
 
-  // DEV ONLY — mirrors the middleware bypass so the marketing "Dashboard" shortcut
-  // works without an auth flow in development. Remove before launch (prod redirects).
-  const devBypass = process.env.NODE_ENV !== "production";
-  if (!user && !devBypass) redirect("/sign-in");
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, avatar_url")
+    .eq("id", user.id)
+    .maybeSingle();
 
-  const email = user?.email ?? "demo@tryhalfstack.com";
+  const account = {
+    email: user.email ?? "",
+    name: profile?.full_name ?? (user.user_metadata?.full_name as string | undefined) ?? null,
+    avatarUrl: profile?.avatar_url ?? (user.user_metadata?.avatar_url as string | undefined) ?? null,
+  };
 
   return (
     <div className="flex min-h-screen">
-      <AppSidebar email={email} />
+      <AppSidebar account={account} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <AppMobileTopbar email={email} />
+        <AppMobileTopbar account={account} />
         {children}
       </div>
     </div>

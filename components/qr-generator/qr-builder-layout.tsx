@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { CircleHelp } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { AccountNav } from "@/components/marketing/account-nav";
 import { Button } from "@/components/ui/button";
 import type { QRType, WizardStep } from "@/lib/qr/types";
 import { HoverPreviewProvider } from "./hover-preview";
@@ -41,13 +42,16 @@ function BuilderShell() {
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <Logo />
           <QRStepper className="hidden md:block" />
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/docs">
-              <CircleHelp aria-hidden />
-              <span className="hidden sm:inline">Help</span>
-              <span className="sr-only sm:hidden">Help</span>
-            </Link>
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/docs">
+                <CircleHelp aria-hidden />
+                <span className="hidden sm:inline">Help</span>
+                <span className="sr-only sm:hidden">Help</span>
+              </Link>
+            </Button>
+            <AccountNav />
+          </div>
         </div>
         <div className="border-t px-4 py-2 md:hidden">
           <QRStepper compact />
@@ -81,6 +85,7 @@ export type SavedQRRecord = {
   slug: string | null;
   publicUrl: string | null;
   published: boolean;
+  trackingMode?: string;
 };
 
 export function QRBuilder({

@@ -229,5 +229,6 @@ export function initialWizardState(): QRWizardState {
     design: defaultDesign,
     generatedPayload: "",
     publishingStatus: "idle",
+    trackingEnabled: false,
   };
 }

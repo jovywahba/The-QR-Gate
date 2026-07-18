@@ -1,8 +1,19 @@
 import { Resend } from "resend";
 import { site } from "@/lib/site";
 
-/** Shared Resend account, per-app API key (see CLAUDE.md §6). */
-export const resend = new Resend(process.env.RESEND_API_KEY);
+/**
+ * Shared Resend account, per-app API key (see CLAUDE.md §6). Resend is
+ * OPTIONAL: the client is created LAZILY (never at module scope) so a
+ * build/deploy with no RESEND_API_KEY can't fail while collecting page
+ * data — mirrors the lazy Stripe client.
+ */
+let client: Resend | null = null;
+
+/** Call only after confirming a real key is configured. */
+export function getResend(): Resend {
+  client ??= new Resend(process.env.RESEND_API_KEY);
+  return client;
+}
 
 // Sending identity — the app's OWN domain (deliverability + branding).
 export const EMAIL_FROM =

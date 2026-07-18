@@ -1,4 +1,4 @@
-import { EMAIL_FROM, REPLY_TO, resend } from "./resend";
+import { EMAIL_FROM, getResend, REPLY_TO } from "./resend";
 import { site } from "./site";
 
 /**
@@ -18,7 +18,7 @@ function resendReady(): boolean {
 async function send(to: string, subject: string, html: string): Promise<void> {
   if (!resendReady() || !to) return;
   try {
-    await resend.emails.send({ from: EMAIL_FROM, to, subject, html, replyTo: REPLY_TO });
+    await getResend().emails.send({ from: EMAIL_FROM, to, subject, html, replyTo: REPLY_TO });
   } catch (err) {
     console.error("email send failed:", err instanceof Error ? err.message : err);
   }

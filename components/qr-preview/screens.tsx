@@ -3,29 +3,38 @@
 import * as React from "react";
 import {
   Apple,
+  Building2,
   ChevronRight,
   Clock,
   Copy,
+  Download,
   Eye,
   EyeOff,
+  FileText,
   Globe,
+  Heart,
+  Image as ImageIcon,
   Instagram as InstagramIcon,
+  Link2,
   Lock,
-  Mail,
   MapPin,
   MessageCircle,
   Music,
   Navigation,
   Phone,
   Play,
+  Share2,
   ShieldCheck,
+  Sparkles,
   Ticket,
+  User2,
   UserPlus,
   UtensilsCrossed,
   Wifi,
   type LucideIcon,
 } from "lucide-react";
 import { SOCIAL_ICONS } from "@/components/qr-public/shared";
+import { formatBytes } from "@/components/qr-public/resolver";
 import { couponDiscountLabel, isCouponExpired } from "@/lib/qr/coupon";
 import { buildVCardPayload } from "@/lib/qr/payloads";
 import { videoEmbed } from "@/lib/qr/preview-capabilities";
@@ -55,7 +64,8 @@ import type {
   WhatsAppContent,
   WiFiContent,
 } from "@/lib/qr/types";
-import { Avatar, Body, Field, GhostBtn, Hero, IconAction, PrimaryBtn } from "./kit";
+import { cn } from "@/lib/utils";
+import { Avatar, Body, GhostBtn, Hero, IconAction, PrimaryBtn } from "./kit";
 import { FacebookEmbed, VimeoEmbed, YouTubeEmbed, facebookPluginUrl } from "./official-embed";
 import { AudioPlayer, VideoPlayer, useMediaDuration } from "./media-player";
 import { PdfViewer } from "./pdf-viewer";
@@ -116,14 +126,246 @@ function OpenCard({
   );
 }
 
+/* ═══ Premium destination primitives (match the reference mockups) ═══
+   Warm, themed destination pages — decorative gradient backgrounds, soft
+   blobs, display headings, fanned photos, and colored brand rows. All are
+   driven by REAL content (demo fixtures on hover, the user's own data in
+   the builder). No fabricated stats or media. */
+
+type Palette = {
+  grad: string;
+  blobA: string;
+  blobB: string;
+  heading: string;
+  sub: string;
+  chip: string;
+  btn: string;
+};
+
+const PEACH: Palette = {
+  grad: "from-[#FCE9DD] via-[#FDF3EC] to-[#FDF8F3]",
+  blobA: "bg-[#F6C4A6]",
+  blobB: "bg-[#FAD9BE]",
+  heading: "text-[#2b2b33]",
+  sub: "text-[#6b675c]",
+  chip: "text-[#E8734A]",
+  btn: "bg-[#EA7A50] text-white",
+};
+const CREAM: Palette = {
+  grad: "from-[#F4EADC] via-[#FAF3E9] to-[#F8F1E7]",
+  blobA: "bg-[#E7C79C]",
+  blobB: "bg-[#EBD6B4]",
+  heading: "text-[#3d3020]",
+  sub: "text-[#6b5c45]",
+  chip: "text-[#C08A4E]",
+  btn: "bg-[#C08A4E] text-white",
+};
+const CORAL: Palette = {
+  grad: "from-[#F7CBC3] via-[#FBEBE5] to-[#FBF4EF]",
+  blobA: "bg-[#F1A79D]",
+  blobB: "bg-[#F6C7BE]",
+  heading: "text-[#2b2b33]",
+  sub: "text-[#6b675c]",
+  chip: "text-[#E8734A]",
+  btn: "bg-[#E8734A] text-white",
+};
+const TEAL: Palette = {
+  grad: "from-[#CDECE6] via-[#E6F5F1] to-[#F5FBFA]",
+  blobA: "bg-[#A9DED4]",
+  blobB: "bg-[#C6EBE3]",
+  heading: "text-[#123b45]",
+  sub: "text-[#4a6b70]",
+  chip: "text-[#16897f]",
+  btn: "bg-gradient-to-r from-[#2AA8A0] to-[#1E8E8E] text-white",
+};
+
+/** Themed page with soft decorative blobs (the mockups' organic backdrop). */
+function Shell({ palette, children }: { palette: Palette; children: React.ReactNode }) {
+  return (
+    <div className={cn("relative min-h-full overflow-hidden bg-gradient-to-b", palette.grad)}>
+      <span aria-hidden className={cn("pointer-events-none absolute -top-14 -left-12 size-44 rounded-full opacity-50 blur-3xl", palette.blobA)} />
+      <span aria-hidden className={cn("pointer-events-none absolute top-24 -right-16 size-40 rounded-full opacity-40 blur-3xl", palette.blobB)} />
+      <span aria-hidden className={cn("pointer-events-none absolute -bottom-12 -left-10 size-40 rounded-full opacity-30 blur-3xl", palette.blobA)} />
+      <div className="relative">{children}</div>
+    </div>
+  );
+}
+
+/** Three real photos fanned like the mockups (front centered, two behind). */
+function PhotoFan({ images }: { images: string[] }) {
+  const [front, left, right] = [images[0], images[1] ?? images[0], images[2] ?? images[1] ?? images[0]];
+  return (
+    <div className="relative mx-auto flex h-48 w-full max-w-[230px] items-center justify-center">
+      {left && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={left} alt="" className="absolute left-0 top-7 h-32 w-[84px] -rotate-[10deg] rounded-2xl border-[3px] border-white object-cover shadow-lg" />
+      )}
+      {right && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={right} alt="" className="absolute right-0 top-7 h-32 w-[84px] rotate-[10deg] rounded-2xl border-[3px] border-white object-cover shadow-lg" />
+      )}
+      {front && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={front} alt="" className="relative z-10 h-44 w-[130px] rounded-[1.4rem] border-[3px] border-white object-cover shadow-xl" />
+      )}
+    </div>
+  );
+}
+
+/** Brand-colored circular badge behind a social icon. */
+const BRAND_BADGE: Record<string, string> = {
+  facebook: "bg-[#1877F2]",
+  instagram: "bg-[linear-gradient(45deg,#F9CE34,#EE2A7B_45%,#6228D7)]",
+  youtube: "bg-[#FF0000]",
+  x: "bg-black",
+  linkedin: "bg-[#0A66C2]",
+  tiktok: "bg-black",
+  whatsapp: "bg-[#25D366]",
+  telegram: "bg-[#229ED9]",
+  website: "bg-primary",
+};
+
+/** A colored social/brand row (Facebook · Instagram · YouTube …). */
+function BrandRow({
+  platform,
+  label,
+  chevron,
+  url,
+}: {
+  platform: keyof typeof SOCIAL_ICONS;
+  label: string;
+  chevron: string;
+  url: string;
+}) {
+  const Icon = SOCIAL_ICONS[platform];
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className="flex items-center gap-3.5 rounded-[1.15rem] bg-white/90 px-4 py-3 shadow-sm backdrop-blur"
+    >
+      <span className={cn("flex size-12 items-center justify-center rounded-full text-white", BRAND_BADGE[platform] ?? "bg-primary")}>
+        <Icon className="size-6" aria-hidden />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[15px] font-semibold capitalize text-foreground">{label}</p>
+        <p className="text-[11px] text-muted-foreground">Social Account</p>
+      </div>
+      <ChevronRight className={cn("size-5 shrink-0", chevron)} aria-hidden />
+    </a>
+  );
+}
+
+/** A rounded white detail row (Contact Info · Company · About …). */
+function DetailRow({ icon: Icon, title }: { icon: LucideIcon; title: string }) {
+  return (
+    <div className="flex items-center gap-3.5 rounded-2xl bg-white px-4 py-3.5 shadow-sm">
+      <span className="flex size-11 items-center justify-center rounded-full bg-[#D5F0EB] text-[#16897f]">
+        <Icon className="size-5" aria-hidden />
+      </span>
+      <p className="flex-1 text-[15px] font-semibold text-[#123b45]">{title}</p>
+      <ChevronRight className="size-5 text-[#9fbcbf]" aria-hidden />
+    </div>
+  );
+}
+
+/** A big pill CTA used across the premium screens. */
+function PillBtn({
+  icon: Icon,
+  className,
+  children,
+}: {
+  icon?: LucideIcon;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      className={cn(
+        "flex h-[52px] w-full items-center justify-center gap-2.5 rounded-2xl px-5 text-[15px] font-bold shadow-md",
+        className,
+      )}
+    >
+      {Icon && <Icon className="size-5" aria-hidden />}
+      {children}
+    </span>
+  );
+}
+
 /* ── Website ── */
 function WebsiteScreen({ data }: { data: WebsiteContent }) {
   return <WebsiteFrame data={data} />;
 }
 
-/* ── PDF ── */
+/* ── PDF (Creative Portfolio) ── */
 function PdfScreen({ data }: { data: PDFContent }) {
-  return <PdfViewer file={data.file} title={data.title} description={data.description} buttonLabel={data.buttonLabel} />;
+  const file = data.file;
+  if (!file?.previewUrl) {
+    // No file yet → the plain viewer shows the honest empty/config state.
+    return <PdfViewer file={file} title={data.title} description={data.description} buttonLabel={data.buttonLabel} />;
+  }
+  const title = data.title.trim() || "Document";
+  return (
+    <div className="min-h-full bg-gradient-to-b from-[#0e2440] via-[#0e2440] to-[#f2efe8]">
+      <div className="px-5 pt-12 text-center text-white">
+        <span className="mx-auto flex size-11 items-center justify-center rounded-xl border border-white/25">
+          <FileText className="size-5 text-[#d9b979]" aria-hidden />
+        </span>
+        <p className="mt-3 font-mono text-[10px] tracking-[0.22em] text-[#d9b979] uppercase">Document Preview</p>
+        <h1 className="mt-1 font-serif text-[28px] leading-tight font-bold">{title}</h1>
+        {data.description.trim() && (
+          <p className="mx-auto mt-2 max-w-[16rem] text-[13px] leading-snug text-white/70">{data.description}</p>
+        )}
+      </div>
+      <div className="mt-5 px-4 pb-9">
+        <div className="rounded-[1.5rem] bg-[#f7f5ef] p-4 shadow-2xl">
+          <div className="overflow-hidden rounded-2xl border bg-white">
+            <object
+              data={`${file.previewUrl}#toolbar=0&view=FitH`}
+              type="application/pdf"
+              className="h-56 w-full"
+              aria-label={title}
+            >
+              <div className="flex h-56 items-center justify-center">
+                <FileText className="size-10 text-muted-foreground" aria-hidden />
+              </div>
+            </object>
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <span className="flex size-11 items-center justify-center rounded-lg bg-[#E4342E] font-mono text-[10px] font-bold text-white">
+              PDF
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold text-[#0e2440]">{file.fileName}</p>
+              <p className="text-[11px] text-muted-foreground">{formatBytes(file.fileSize) || "PDF document"}</p>
+            </div>
+          </div>
+          {data.description.trim() && (
+            <div className="mt-3 flex items-start gap-3 rounded-xl bg-[#eaeef3] p-3">
+              <FileText className="mt-0.5 size-4 shrink-0 text-[#0e2440]" aria-hidden />
+              <p className="text-[12px] leading-snug text-[#3a4a5a]">{data.description}</p>
+            </div>
+          )}
+          <div className="mt-4 grid grid-cols-2 gap-2.5">
+            <a href={file.previewUrl} target="_blank" rel="noreferrer">
+              <PillBtn icon={Eye} className="h-12 bg-[#0e2440] text-white">
+                {data.buttonLabel?.trim() || "Open PDF"}
+              </PillBtn>
+            </a>
+            <a href={file.previewUrl} download={file.fileName}>
+              <PillBtn icon={Download} className="h-12 border border-[#0e2440]/25 bg-white text-[#0e2440]">
+                Download
+              </PillBtn>
+            </a>
+          </div>
+          <p className="mt-3 flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground">
+            <Lock className="size-3" aria-hidden /> Secure PDF Preview · Your privacy is protected
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /* ── List of Links ── */
@@ -182,34 +424,32 @@ function VcardScreen({ data }: { data: VCardContent }) {
 
   if (!name && !role) return <Empty icon={UserPlus}>Enter a name to preview the contact card.</Empty>;
 
+  const hasContact = Boolean(data.mobile?.trim() || data.phone?.trim() || data.email?.trim() || address);
+  const hasCompany = Boolean(data.company?.trim());
+  const hasAbout = Boolean(data.note?.trim());
+  const hasSocial = Boolean(data.website?.trim());
+
   return (
-    <div>
-      <div className="relative h-20 bg-gradient-to-br from-accent/80 to-primary" />
-      <Body className="-mt-9">
-        <div className="flex flex-col items-center gap-1.5 text-center">
-          <Avatar name={name} size={64} />
-          {name && <p className="text-base font-semibold">{name}</p>}
-          {role && <p className="text-xs text-muted-foreground">{role}</p>}
+    <Shell palette={TEAL}>
+      <div className="px-5 pt-14 pb-9">
+        <div className="flex flex-col items-center text-center">
+          <Avatar name={name} size={112} className="border-4 border-white shadow-lg" />
+          {name && <h1 className="mt-4 text-[26px] leading-tight font-extrabold text-[#123b45]">{name}</h1>}
+          {role && <p className="mt-0.5 text-[15px] text-[#4a6b70]">{role}</p>}
         </div>
-        <div className="flex gap-2 pt-1">
-          {data.mobile?.trim() && <IconAction icon={Phone} label="Call" />}
-          {data.email?.trim() && <IconAction icon={Mail} label="Email" />}
-          <button type="button" onClick={saveContact} className="flex flex-1 flex-col items-center gap-1.5">
-            <span className="flex size-11 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              <UserPlus className="size-4.5" aria-hidden />
-            </span>
-            <span className="text-[10px] font-medium text-muted-foreground">Save</span>
-          </button>
+        <button type="button" onClick={saveContact} className="mt-6 block w-full">
+          <PillBtn icon={Download} className={cn("h-[52px]", TEAL.btn)}>
+            Save Contact
+          </PillBtn>
+        </button>
+        <div className="mt-6 space-y-3">
+          {hasContact && <DetailRow icon={Phone} title="Contact Info" />}
+          {hasCompany && <DetailRow icon={Building2} title="Company" />}
+          {hasAbout && <DetailRow icon={User2} title="About" />}
+          {hasSocial && <DetailRow icon={Link2} title="Social Links" />}
         </div>
-        <div className="divide-y rounded-xl border bg-card px-2">
-          {data.mobile?.trim() && <Field icon={Phone} label="Mobile" value={data.mobile} />}
-          {data.phone?.trim() && <Field icon={Phone} label="Phone" value={data.phone} />}
-          {data.email?.trim() && <Field icon={Mail} label="Email" value={data.email} />}
-          {data.website?.trim() && <Field icon={Globe} label="Website" value={data.website} />}
-          {address && <Field icon={MapPin} label="Address" value={address} />}
-        </div>
-      </Body>
-    </div>
+      </div>
+    </Shell>
   );
 }
 
@@ -299,84 +539,97 @@ function BusinessScreen({ data }: { data: BusinessContent }) {
   );
 }
 
-/* ── Video ── */
+/* ── Video (My Moments) ── */
 function VideoScreen({ data }: { data: VideoContent }) {
+  let player: React.ReactNode = null;
   if (data.mode === "upload") {
     if (!data.file?.previewUrl) return <Empty icon={Play}>Upload a video to preview it here.</Empty>;
-    return (
-      <div>
-        <VideoPlayer src={data.file.previewUrl} poster={data.thumbnail?.previewUrl} />
-        <Body>
-          {data.title.trim() && <p className="text-sm font-semibold">{data.title}</p>}
-          {data.description.trim() && <p className="text-xs text-muted-foreground">{data.description}</p>}
-        </Body>
-      </div>
-    );
-  }
-  const embed = videoEmbed({ type: "video", data });
-  if (embed) {
-    return (
-      <div>
-        {embed.provider === "youtube" ? (
+    player = <VideoPlayer src={data.file.previewUrl} poster={data.thumbnail?.previewUrl} />;
+  } else {
+    const embed = videoEmbed({ type: "video", data });
+    if (embed) {
+      player =
+        embed.provider === "youtube" ? (
           <YouTubeEmbed embedUrl={embed.embedUrl} title={data.title || "Video"} />
         ) : (
           <VimeoEmbed embedUrl={embed.embedUrl} title={data.title || "Video"} />
-        )}
-        <Body>
-          {data.title.trim() && <p className="text-sm font-semibold">{data.title}</p>}
-          {data.description.trim() && <p className="text-xs text-muted-foreground">{data.description}</p>}
-        </Body>
-      </div>
-    );
+        );
+    } else {
+      const url = normalizeUrl(data.videoUrl);
+      if (!url) return <Empty icon={Play}>Add a video URL to preview it here.</Empty>;
+      return <OpenCard icon={Play} title={data.title || "Video"} url={url} buttonLabel="Watch video" />;
+    }
   }
-  const url = normalizeUrl(data.videoUrl);
-  if (!url) return <Empty icon={Play}>Add a video URL to preview it here.</Empty>;
-  return <OpenCard icon={Play} title={data.title || "Video"} url={url} buttonLabel="Watch video" />;
+  const title = data.title.trim() || "My Video";
+  return (
+    <Shell palette={PEACH}>
+      <div className="px-5 pt-14 pb-9">
+        <div className="text-center">
+          <h1 className="text-[30px] leading-tight font-extrabold text-[#2b2b33]">{title}</h1>
+          {data.description.trim() && (
+            <p className="mx-auto mt-2 max-w-[16rem] text-[14px] leading-snug text-[#6b675c]">{data.description}</p>
+          )}
+        </div>
+        <div className="mt-5 overflow-hidden rounded-[1.4rem] border-[3px] border-white shadow-lg">{player}</div>
+        <div className="mt-3 flex items-center gap-3 rounded-2xl bg-white/90 px-4 py-3 shadow-sm">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#FBE0D2] text-[#E8734A]">
+            <Play className="size-5 fill-current" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[15px] font-bold text-[#2b2b33]">{title}</p>
+            {data.description.trim() && <p className="truncate text-[12px] text-[#6b675c]">{data.description}</p>}
+          </div>
+        </div>
+        <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-[12px] text-[#8a857a]">
+          <Heart className="size-3.5 fill-[#E8734A] text-[#E8734A]" aria-hidden /> Every moment has a story.
+        </p>
+      </div>
+    </Shell>
+  );
 }
 
-/* ── Images ── */
+/* ── Images (Image Collection) ── */
 function ImagesScreen({ data }: { data: ImagesContent }) {
-  const imgs = data.images
-    .map((i) => ({ url: i.asset.previewUrl, caption: i.caption }))
-    .filter((i) => i.url) as { url: string; caption: string }[];
-  if (imgs.length === 0) return <Empty icon={Globe}>Upload images to preview the gallery.</Empty>;
+  const imgs = data.images.map((i) => i.asset.previewUrl).filter(Boolean) as string[];
+  if (imgs.length === 0) return <Empty icon={ImageIcon}>Upload images to preview the gallery.</Empty>;
   const ctaUrl = data.ctaLabel.trim() && data.ctaUrl.trim() ? normalizeUrl(data.ctaUrl) : null;
+  const title = data.title.trim() || "Image Collection";
   return (
-    <div>
-      <div className="relative aspect-[4/3] w-full">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={imgs[0].url} alt={imgs[0].caption || "Image 1"} className="absolute inset-0 size-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 p-3">
-          {data.title.trim() && <p className="text-base font-semibold text-white">{data.title}</p>}
-          {imgs[0].caption.trim() && <p className="text-[11px] text-white/85">{imgs[0].caption}</p>}
-        </div>
-        <span className="absolute top-9 right-2 rounded-full bg-black/60 px-2 py-0.5 font-mono text-[10px] text-white">
-          {imgs.length} {imgs.length === 1 ? "photo" : "photos"}
+    <Shell palette={CREAM}>
+      <div className="px-5 pt-14 pb-9 text-center">
+        <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-white shadow-sm">
+          <ImageIcon className="size-6 text-[#C08A4E]" aria-hidden />
         </span>
+        <h1 className="mt-4 font-serif text-[28px] leading-tight font-bold text-[#3d3020]">{title}</h1>
+        {data.description.trim() && (
+          <p className="mx-auto mt-1.5 max-w-[16rem] text-[14px] text-[#6b5c45]">{data.description}</p>
+        )}
+        <div className="my-4 flex items-center justify-center gap-2">
+          <span className="h-px w-8 bg-[#D9B98C]" />
+          <Sparkles className="size-3.5 text-[#C08A4E]" aria-hidden />
+          <span className="h-px w-8 bg-[#D9B98C]" />
+        </div>
+        <PhotoFan images={imgs} />
+        <div className="mt-7 flex items-center gap-2.5">
+          {ctaUrl ? (
+            <a href={ctaUrl} target="_blank" rel="noreferrer" className="min-w-0 flex-1">
+              <PillBtn icon={ImageIcon} className={cn("h-[52px]", CREAM.btn)}>
+                {data.ctaLabel}
+              </PillBtn>
+            </a>
+          ) : (
+            <span className="min-w-0 flex-1">
+              <PillBtn icon={ImageIcon} className={cn("h-[52px]", CREAM.btn)}>
+                View Gallery
+              </PillBtn>
+            </span>
+          )}
+          <span className="flex size-[52px] shrink-0 items-center justify-center rounded-2xl bg-white text-[#C08A4E] shadow-sm">
+            <Share2 className="size-5" aria-hidden />
+          </span>
+        </div>
       </div>
-      <Body>
-        {data.description.trim() && <p className="text-xs text-muted-foreground">{data.description}</p>}
-        {imgs.length > 1 && (
-          <div className="grid grid-cols-3 gap-1.5">
-            {imgs.slice(1).map((img, i) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={i}
-                src={img.url}
-                alt={img.caption || `Image ${i + 2}`}
-                className="aspect-square w-full rounded-lg border object-cover"
-              />
-            ))}
-          </div>
-        )}
-        {ctaUrl && (
-          <a href={ctaUrl} target="_blank" rel="noreferrer">
-            <PrimaryBtn>{data.ctaLabel}</PrimaryBtn>
-          </a>
-        )}
-      </Body>
-    </div>
+    </Shell>
   );
 }
 
@@ -429,41 +682,47 @@ function InstagramScreen({ data }: { data: InstagramContent }) {
   );
 }
 
-/* ── Social Media ── */
+/* ── Social Media (Creative Socials) ── */
 function SocialScreen({ data }: { data: SocialContent }) {
   const links = data.links.filter((l) => normalizeUrl(l.url));
+  const title = data.title.trim() || "Creative Socials";
   return (
-    <Body top className="text-center">
-      <div className="flex flex-col items-center gap-2">
-        <Avatar src={data.image?.previewUrl} name={data.title} size={60} />
-        {data.title.trim() && <p className="text-base font-semibold">{data.title}</p>}
-        {data.description.trim() && <p className="text-xs text-muted-foreground">{data.description}</p>}
-      </div>
-      {links.length === 0 ? (
-        <p className="pt-4 text-xs text-muted-foreground">Add a social link and it appears here.</p>
-      ) : (
-        <div className="space-y-2 pt-1 text-left">
-          {links.map((l) => {
-            const Icon = SOCIAL_ICONS[l.platform];
-            return (
-              <a
-                key={l.id}
-                href={normalizeUrl(l.url)!}
-                target="_blank"
-                rel="noreferrer"
-                className="flex h-11 items-center gap-3 rounded-xl border bg-card px-3 shadow-sm"
-              >
-                <span className="flex size-8 items-center justify-center rounded-lg bg-muted">
-                  <Icon className="size-4" aria-hidden />
-                </span>
-                <span className="flex-1 truncate text-sm font-medium capitalize">{l.label.trim() || l.platform}</span>
-                <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
-              </a>
-            );
-          })}
+    <Shell palette={CORAL}>
+      <div className="px-5 pt-12 pb-9">
+        {data.image?.previewUrl && (
+          <div className="mx-auto mb-5 h-40 w-[132px] overflow-hidden rounded-[1.4rem] border-[3px] border-white shadow-xl">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={data.image.previewUrl} alt="" className="size-full object-cover" />
+          </div>
+        )}
+        <div className="text-center">
+          <h1 className="font-serif text-[28px] leading-tight font-bold text-[#2b2b33]">{title}</h1>
+          <div className="my-3 flex items-center justify-center gap-2">
+            <span className="h-px w-8 bg-[#E9A99F]" />
+            <Heart className="size-4 fill-[#E8734A] text-[#E8734A]" aria-hidden />
+            <span className="h-px w-8 bg-[#E9A99F]" />
+          </div>
+          {data.description.trim() && (
+            <p className="mx-auto max-w-[17rem] text-[14px] leading-snug text-[#6b675c]">{data.description}</p>
+          )}
         </div>
-      )}
-    </Body>
+        {links.length === 0 ? (
+          <p className="pt-5 text-center text-xs text-muted-foreground">Add a social link and it appears here.</p>
+        ) : (
+          <div className="mt-5 space-y-3">
+            {links.map((l) => (
+              <BrandRow
+                key={l.id}
+                platform={l.platform}
+                label={l.label.trim() || l.platform}
+                chevron={CORAL.chip}
+                url={normalizeUrl(l.url)!}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </Shell>
   );
 }
 

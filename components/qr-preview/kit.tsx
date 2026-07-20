@@ -13,18 +13,27 @@ import { cn } from "@/lib/utils";
  * ───────────────────────────────────────────────────────────────
  */
 
-/** Fixed inner screen height — the phone scrolls internally past this. */
-export const SCREEN_HEIGHT = 468;
+/** Fixed inner screen height — the phone scrolls internally past this.
+ *  Tuned to a real iPhone ~19.5:9 aspect ratio for the tall silhouette. */
+export const SCREEN_HEIGHT = 564;
 
-/** A premium phone shell: bezel, dynamic island, frosted status bar,
- *  clipped screen with internal scroll, and a bottom home indicator. */
+/** A premium iPhone-style shell: titanium rail, side buttons, dynamic
+ *  island, frosted status bar, clipped screen with internal scroll, and
+ *  a bottom home indicator. */
 export function PhoneFrame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mx-auto w-full max-w-[288px]">
-      <div className="relative rounded-[2.7rem] bg-foreground/90 p-[6px] shadow-[0_20px_45px_-20px_rgba(0,0,0,0.45)] ring-1 ring-foreground/15">
-        <div className="relative overflow-hidden rounded-[2.25rem] bg-background">
+    <div className="relative mx-auto w-full max-w-[276px]">
+      {/* Side buttons (titanium rails) — the iPhone silhouette. */}
+      <span aria-hidden className="absolute top-[92px] -left-[2px] h-7 w-[3px] rounded-l-sm bg-foreground/55" />
+      <span aria-hidden className="absolute top-[136px] -left-[2px] h-12 w-[3px] rounded-l-sm bg-foreground/55" />
+      <span aria-hidden className="absolute top-[196px] -left-[2px] h-12 w-[3px] rounded-l-sm bg-foreground/55" />
+      <span aria-hidden className="absolute top-[164px] -right-[2px] h-16 w-[3px] rounded-r-sm bg-foreground/55" />
+
+      {/* Titanium frame. */}
+      <div className="relative rounded-[3rem] bg-gradient-to-b from-foreground/95 via-foreground to-foreground/95 p-[7px] shadow-[0_28px_60px_-24px_rgba(0,0,0,0.5)] ring-1 ring-foreground/20">
+        <div className="relative overflow-hidden rounded-[2.5rem] bg-background ring-1 ring-black/10">
           {/* Frosted status bar (readable over any screen content). */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex h-9 items-center justify-between bg-background/45 px-5 pt-1 backdrop-blur-md">
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex h-11 items-center justify-between bg-background/45 px-5 pt-2 backdrop-blur-md">
             <span className="font-mono text-[11px] font-semibold text-foreground">9:41</span>
             <span className="flex items-center gap-1 text-foreground" aria-hidden>
               <Signal className="size-3.5" />
@@ -35,7 +44,7 @@ export function PhoneFrame({ children }: { children: React.ReactNode }) {
           {/* Dynamic island. */}
           <div
             aria-hidden
-            className="absolute top-[7px] left-1/2 z-30 h-[22px] w-[84px] -translate-x-1/2 rounded-full bg-foreground shadow-inner"
+            className="absolute top-[9px] left-1/2 z-30 h-[24px] w-[86px] -translate-x-1/2 rounded-full bg-foreground shadow-inner"
           />
           {/* Screen — internal scroll, scrollbar hidden. */}
           <div
@@ -45,7 +54,7 @@ export function PhoneFrame({ children }: { children: React.ReactNode }) {
             {children}
           </div>
           {/* Home indicator with a soft scrim so it stays legible. */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center bg-gradient-to-t from-background/90 to-transparent pt-6 pb-2">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center bg-gradient-to-t from-background/90 to-transparent pt-6 pb-2.5">
             <span aria-hidden className="h-1 w-24 rounded-full bg-foreground/45" />
           </div>
         </div>

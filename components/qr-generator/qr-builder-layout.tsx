@@ -65,7 +65,10 @@ function BuilderShell() {
             <WizardActions />
           </div>
           <aside className="hidden w-[360px] shrink-0 lg:block" aria-label="Live preview">
-            <div className="sticky top-24 rounded-xl border bg-card p-4">
+            {/* Pinned to the viewport as you scroll; if the phone is taller
+                than the screen it scrolls inside the card (hidden scrollbar)
+                so it never breaks out of `sticky`. */}
+            <div className="sticky top-24 max-h-[calc(100dvh-7rem)] overflow-y-auto rounded-xl border bg-card p-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <QRPreviewPanel autoSwitch />
             </div>
           </aside>

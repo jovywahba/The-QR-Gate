@@ -1,10 +1,9 @@
 "use client";
 
 import * as React from "react";
-import QRCodeStyling from "qr-code-styling";
 import { QrCode } from "lucide-react";
-import { buildQRStylingOptions } from "@/lib/qr/styling";
-import type { QRDesignOptions } from "@/lib/qr/types";
+import { composeArtworkCanvas } from "@/lib/qr/composition";
+import type { QRDesignOptions, QRType } from "@/lib/qr/types";
 import { cn } from "@/lib/utils";
 
 /**
@@ -12,8 +11,10 @@ import { cn } from "@/lib/utils";
  * (invalid/incomplete content) it shows an honest empty state, never
  * a placeholder pattern.
  *
- * qr-code-styling touches the DOM, so this component is loaded with
- * `next/dynamic` + `ssr: false` (see qr-preview-panel.tsx).
+ * It renders the SAME composed artwork the export produces (QR + frame
+ * + CTA) through lib/qr/composition, so the preview is a true
+ * what-you-see-is-what-you-download. Canvas work touches the DOM, so
+ * this component is loaded with `next/dynamic` + `ssr: false`.
  */
 
 export type QRRendererProps = {
@@ -21,6 +22,8 @@ export type QRRendererProps = {
   /** Internal render resolution (canvas px). Display size comes from className. */
   size?: number;
   design: QRDesignOptions;
+  /** Resolves the default CTA text for frames when the user typed none. */
+  type?: QRType | null;
   /** Shown in the empty state — tell the user what's missing. */
   emptyHint?: string;
   className?: string;
@@ -32,33 +35,38 @@ export default function QRRenderer({
   payload,
   size = 640,
   design,
+  type,
   emptyHint = "Fill in the required fields and your QR code will appear here.",
   className,
 }: QRRendererProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const qrRef = React.useRef<QRCodeStyling | null>(null);
 
   React.useEffect(() => {
     if (!payload) {
       // Tear down so an invalid edit can't keep showing a stale (wrong) code.
-      qrRef.current = null;
       if (containerRef.current) containerRef.current.innerHTML = "";
       return;
     }
+    let cancelled = false;
     const timer = window.setTimeout(() => {
-      const options = buildQRStylingOptions(payload, design, size);
-      if (!qrRef.current) {
-        qrRef.current = new QRCodeStyling(options);
-        if (containerRef.current) {
+      composeArtworkCanvas({ payload, design, size, type })
+        .then((canvas) => {
+          if (cancelled || !containerRef.current) return;
+          canvas.style.width = "100%";
+          canvas.style.height = "auto";
+          canvas.style.display = "block";
           containerRef.current.innerHTML = "";
-          qrRef.current.append(containerRef.current);
-        }
-      } else {
-        qrRef.current.update(options);
-      }
+          containerRef.current.appendChild(canvas);
+        })
+        .catch(() => {
+          /* a transient render failure keeps the last good artwork */
+        });
     }, RENDER_DEBOUNCE_MS);
-    return () => window.clearTimeout(timer);
-  }, [payload, design, size]);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [payload, design, size, type]);
 
   if (!payload) {
     return (
@@ -79,11 +87,7 @@ export default function QRRenderer({
       ref={containerRef}
       role="img"
       aria-label="Generated QR code"
-      className={cn(
-        "aspect-square w-full overflow-hidden rounded-lg border bg-white p-2",
-        "[&_canvas]:h-full [&_canvas]:w-full",
-        className,
-      )}
+      className={cn("w-full overflow-hidden rounded-lg border bg-white p-2", className)}
     />
   );
 }

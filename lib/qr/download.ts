@@ -1,4 +1,5 @@
-import { buildQRExportOptions, type PNGExportSize, type QRExportFormat } from "./styling";
+import { composeArtworkCanvas, composeArtworkSvg } from "./composition";
+import { type PNGExportSize, type QRExportFormat } from "./styling";
 import type { QRDesignOptions, QRType } from "./types";
 
 /**
@@ -34,13 +35,17 @@ export async function downloadQRCode(args: {
   const { payload, type, design, format, size = DEFAULT_EXPORT_SIZE } = args;
   if (!payload) return false;
 
-  // Dynamic import keeps qr-code-styling (browser-only) out of any server bundle.
-  const { default: QRCodeStyling } = await import("qr-code-styling");
-  const qr = new QRCodeStyling(buildQRExportOptions(payload, design, size, format));
-
-  const raw = await qr.getRawData(format);
-  if (!raw) return false;
-  const blob = raw instanceof Blob ? raw : new Blob([new Uint8Array(raw as Buffer)]);
+  // Both formats go through the ONE composition layer, so the exported
+  // file matches the live preview exactly — frame included.
+  let blob: Blob | null;
+  if (format === "svg") {
+    const svg = await composeArtworkSvg({ payload, design, size, type });
+    blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+  } else {
+    const canvas = await composeArtworkCanvas({ payload, design, size, type });
+    blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+  }
+  if (!blob) return false;
 
   const url = URL.createObjectURL(blob);
   try {

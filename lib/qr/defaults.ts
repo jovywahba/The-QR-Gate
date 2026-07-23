@@ -21,6 +21,15 @@ export const defaultDesign: QRDesignOptions = {
   logoSize: 18,
   logoMargin: 4,
   logoBackground: true,
+  // Templates & frames — defaults keep the classic plain QR, which is
+  // also what pre-Part-6 saved designs migrate to.
+  templateId: null,
+  frameId: "none",
+  frameText: "",
+  frameBackground: "#FFFFFF",
+  frameForeground: "#1B1B2F",
+  frameTextColor: "#FFFFFF",
+  exportFit: "square",
 };
 
 /**

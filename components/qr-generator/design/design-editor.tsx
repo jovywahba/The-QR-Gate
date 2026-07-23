@@ -23,8 +23,9 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { defaultDesign } from "@/lib/qr/defaults";
-import { applyPreset, DESIGN_PRESETS, presetThumbnailDesign } from "@/lib/qr/presets";
+import { getFrame } from "@/lib/qr/frames";
 import { MAX_MARGIN, MIN_MARGIN, RECOMMENDED_MARGIN } from "@/lib/qr/readability";
+import { getTemplate, isTemplateModified } from "@/lib/qr/templates";
 import type {
   QRCornerDotStyle,
   QRCornerSquareStyle,
@@ -32,15 +33,15 @@ import type {
   QRErrorCorrection,
   QRGradientType,
 } from "@/lib/qr/types";
-import { cn } from "@/lib/utils";
 import { useQRWizard } from "../use-qr-wizard";
 import { ColorField } from "./color-field";
 import { DesignSection } from "./design-section";
 import { EnlargePreview } from "./enlarge-preview";
+import { FramePicker } from "./frame-picker";
 import { LogoSection } from "./logo-section";
-import { MiniQR } from "./mini-qr";
 import { ReadabilityPanel } from "./readability-panel";
 import { RangeField, StyleOptionGroup } from "./style-option-group";
+import { TemplatePicker } from "./template-picker";
 
 /**
  * Step 3 — the real design editor. Every control writes into the one
@@ -124,15 +125,11 @@ export function DesignEditor() {
   const { state, patchDesign } = useQRWizard();
   const design = state.design;
 
-  const activePreset = React.useMemo(
-    () =>
-      DESIGN_PRESETS.find((preset) =>
-        Object.entries(preset.apply).every(
-          ([key, value]) => design[key as keyof typeof design] === value,
-        ),
-      ),
-    [design],
-  );
+  const template = getTemplate(design.templateId);
+  const templateMeta = template
+    ? `${template.name}${isTemplateModified(design) ? " — modified" : ""}`
+    : "None";
+  const frameMeta = getFrame(design.frameId).name;
 
   return (
     <div className="space-y-3">
@@ -141,34 +138,18 @@ export function DesignEditor() {
         <ResetDesignButton />
       </div>
 
-      <DesignSection title="Presets" defaultOpen meta={activePreset?.name}>
-        <div
-          role="group"
-          aria-label="Design presets"
-          className="grid grid-cols-3 gap-2 min-[480px]:grid-cols-6 lg:grid-cols-3 xl:grid-cols-6"
-        >
-          {DESIGN_PRESETS.map((preset) => {
-            const selected = activePreset?.id === preset.id;
-            return (
-              <button
-                key={preset.id}
-                type="button"
-                aria-pressed={selected}
-                onClick={() => patchDesign(applyPreset(design, preset))}
-                className={cn(
-                  "flex flex-col items-center gap-1.5 rounded-lg border bg-background p-2 transition-colors",
-                  "hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none",
-                  selected && "border-accent ring-1 ring-accent",
-                )}
-              >
-                <MiniQR design={presetThumbnailDesign(preset)} />
-                <span className="text-xs font-medium">{preset.name}</span>
-              </button>
-            );
-          })}
-        </div>
+      <DesignSection title="Pre-made templates" defaultOpen meta={templateMeta}>
+        <TemplatePicker />
         <p className="text-xs text-muted-foreground">
-          Presets change the style only — never your content, logo, or margin.
+          Templates change the design only — never your content or destination. They&apos;re a starting
+          point: everything stays editable afterwards.
+        </p>
+      </DesignSection>
+
+      <DesignSection title="Frames" defaultOpen meta={frameMeta}>
+        <FramePicker />
+        <p className="text-xs text-muted-foreground">
+          The frame is part of the real artwork — it exports with your PNG and vector SVG.
         </p>
       </DesignSection>
 

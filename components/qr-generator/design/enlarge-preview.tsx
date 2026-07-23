@@ -48,6 +48,7 @@ export function EnlargePreview() {
         <QRRenderer
           payload={state.generatedPayload}
           design={state.design}
+          type={state.selectedType}
           size={960}
           emptyHint="Nothing to encode yet."
         />

@@ -91,6 +91,7 @@ function QRPreviewTab() {
       <QRRenderer
         payload={state.generatedPayload}
         design={state.design}
+        type={state.selectedType}
         emptyHint={
           state.selectedType
             ? needsPublishing

@@ -1,3 +1,4 @@
+import { getFrame, resolveFrameText } from "./frames";
 import type { QRDesignOptions } from "./types";
 
 /**
@@ -67,6 +68,8 @@ export const RECOMMENDED_MARGIN = 4;
 export const MAX_MARGIN = 20;
 export const MIN_LOGO_SIZE = 10;
 export const MAX_LOGO_SIZE = 25;
+/** Below this share of a square export, a framed QR gets uncomfortably small. */
+export const FRAME_MIN_QR_SHARE = 0.6;
 
 export function evaluateDesign(
   design: QRDesignOptions,
@@ -129,6 +132,38 @@ export function evaluateDesign(
     }
     if (design.errorCorrection !== "H") {
       push("error", "logo-needs-h", "Use error correction H when a logo is included.");
+    }
+  }
+
+  /* ── Frame rules ──
+     Frames never draw over the QR (composition only emits primitives
+     outside the QR rect), so the quiet zone and finder patterns stay
+     intact. What CAN hurt scanning is a tall frame squeezing the QR
+     inside a fixed square export — so we check the share of the export
+     the code actually gets. */
+  if (design.frameId && design.frameId !== "none") {
+    const frame = getFrame(design.frameId);
+    const text = resolveFrameText(frame, design.frameText);
+    const probe = frame.layout({
+      qrSize: 1000,
+      text,
+      colors: { background: "#FFFFFF", foreground: "#000000", text: "#FFFFFF" },
+    });
+    const qrShare = 1000 / Math.max(probe.width, probe.height);
+
+    if (design.exportFit === "square" && qrShare < FRAME_MIN_QR_SHARE) {
+      push(
+        "warning",
+        "frame-tight",
+        "This frame leaves little room for the QR in a square export — switch the export to “Fit frame” or pick a larger size.",
+      );
+    }
+    if (frame.hasText) {
+      if (!text) {
+        push("warning", "frame-no-text", "This frame shows a call to action — add some frame text.");
+      } else if (contrastRatio(design.frameTextColor, design.frameForeground) < 2.5) {
+        push("warning", "frame-text-contrast", "The frame text is hard to read on the frame color.");
+      }
     }
   }
 

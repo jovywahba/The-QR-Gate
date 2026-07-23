@@ -125,6 +125,7 @@ export function QRStepContent() {
         <QRRenderer
           payload={state.generatedPayload}
           design={state.design}
+          type={state.selectedType}
           emptyHint={
             needsPublishing
               ? "Save your QR above — the code encodes your hosted link."

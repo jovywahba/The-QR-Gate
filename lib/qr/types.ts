@@ -299,6 +299,13 @@ export type QRCornerDotStyle = "square" | "dot" | "rounded";
 export type QRGradientType = "none" | "linear" | "radial";
 export type QRErrorCorrection = "L" | "M" | "Q" | "H";
 
+/**
+ * How a frame affects the exported canvas.
+ *  square — the whole framed artwork fits the chosen square size.
+ *  frame  — the QR keeps the chosen size and the frame extends the canvas.
+ */
+export type QRExportFit = "square" | "frame";
+
 export type QRDesignOptions = {
   dotStyle: QRDotStyle;
   cornerSquareStyle: QRCornerSquareStyle;
@@ -328,6 +335,24 @@ export type QRDesignOptions = {
   logoMargin: number;
   /** Clear the QR dots behind the logo. */
   logoBackground: boolean;
+
+  /* ── Templates & frames (Part 6) ──
+     Presets that survive save/restore. Old saved designs simply lack
+     these keys, so migrateDesign() gives them the defaults below —
+     i.e. templateId null + frameId "none" (a plain, unframed QR). */
+
+  /** The template applied last, for the "Modified" badge. Never re-applied. */
+  templateId: string | null;
+  /** Frame wrapping the REAL QR in preview and every export. "none" = plain. */
+  frameId: string;
+  /** CTA text for frames that show it (≤ 30 chars). */
+  frameText: string;
+  /** Frame surface, border/accent, and CTA text colors. */
+  frameBackground: string;
+  frameForeground: string;
+  frameTextColor: string;
+  /** Square keeps the export square; frame lets it grow vertically. */
+  exportFit: QRExportFit;
 };
 
 /* ── Wizard state ── */

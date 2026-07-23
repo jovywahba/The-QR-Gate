@@ -19,8 +19,12 @@ export const SCREEN_HEIGHT = 564;
 
 /** A premium iPhone-style shell: titanium rail, side buttons, dynamic
  *  island, frosted status bar, clipped screen with internal scroll, and
- *  a bottom home indicator. */
-export function PhoneFrame({ children }: { children: React.ReactNode }) {
+ *  a bottom home indicator.
+ *
+ *  `bare` drops the status bar, island and home indicator. Use it when
+ *  the child is already a COMPLETE screen design (the supplied Step-1
+ *  artwork), so our chrome never duplicates theirs or covers content. */
+export function PhoneFrame({ children, bare = false }: { children: React.ReactNode; bare?: boolean }) {
   return (
     <div className="relative mx-auto w-full max-w-[276px]">
       {/* Side buttons (titanium rails) — the iPhone silhouette. */}
@@ -32,20 +36,24 @@ export function PhoneFrame({ children }: { children: React.ReactNode }) {
       {/* Titanium frame. */}
       <div className="relative rounded-[3rem] bg-gradient-to-b from-foreground/95 via-foreground to-foreground/95 p-[7px] shadow-[0_28px_60px_-24px_rgba(0,0,0,0.5)] ring-1 ring-foreground/20">
         <div className="relative overflow-hidden rounded-[2.5rem] bg-background ring-1 ring-black/10">
-          {/* Frosted status bar (readable over any screen content). */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex h-11 items-center justify-between bg-background/45 px-5 pt-2 backdrop-blur-md">
-            <span className="font-mono text-[11px] font-semibold text-foreground">9:41</span>
-            <span className="flex items-center gap-1 text-foreground" aria-hidden>
-              <Signal className="size-3.5" />
-              <Wifi className="size-3.5" />
-              <BatteryFull className="size-4" />
-            </span>
-          </div>
-          {/* Dynamic island. */}
-          <div
-            aria-hidden
-            className="absolute top-[9px] left-1/2 z-30 h-[24px] w-[86px] -translate-x-1/2 rounded-full bg-foreground shadow-inner"
-          />
+          {!bare && (
+            <>
+              {/* Frosted status bar (readable over any screen content). */}
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex h-11 items-center justify-between bg-background/45 px-5 pt-2 backdrop-blur-md">
+                <span className="font-mono text-[11px] font-semibold text-foreground">9:41</span>
+                <span className="flex items-center gap-1 text-foreground" aria-hidden>
+                  <Signal className="size-3.5" />
+                  <Wifi className="size-3.5" />
+                  <BatteryFull className="size-4" />
+                </span>
+              </div>
+              {/* Dynamic island. */}
+              <div
+                aria-hidden
+                className="absolute top-[9px] left-1/2 z-30 h-[24px] w-[86px] -translate-x-1/2 rounded-full bg-foreground shadow-inner"
+              />
+            </>
+          )}
           {/* Screen — internal scroll, scrollbar hidden. */}
           <div
             className="overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -53,10 +61,12 @@ export function PhoneFrame({ children }: { children: React.ReactNode }) {
           >
             {children}
           </div>
-          {/* Home indicator with a soft scrim so it stays legible. */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center bg-gradient-to-t from-background/90 to-transparent pt-6 pb-2.5">
-            <span aria-hidden className="h-1 w-24 rounded-full bg-foreground/45" />
-          </div>
+          {!bare && (
+            /* Home indicator with a soft scrim so it stays legible. */
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center bg-gradient-to-t from-background/90 to-transparent pt-6 pb-2.5">
+              <span aria-hidden className="h-1 w-24 rounded-full bg-foreground/45" />
+            </div>
+          )}
         </div>
       </div>
     </div>

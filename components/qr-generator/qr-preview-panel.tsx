@@ -2,13 +2,21 @@
 
 import * as React from "react";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PhoneFrame } from "@/components/qr-preview/kit";
 import { MobileDestination } from "@/components/qr-preview/screens";
-import { demoFixtureFor } from "@/lib/qr/demo-fixtures";
-import { getQRType } from "@/lib/qr/registry";
-import type { QRContent, QRType } from "@/lib/qr/types";
+import { getQRType, QR_TYPES } from "@/lib/qr/registry";
+import {
+  DEFAULT_PREVIEW_TYPE,
+  QR_TYPE_PREVIEW_HEIGHT,
+  QR_TYPE_PREVIEW_WIDTH,
+  qrTypePreviewAlt,
+  qrTypePreviewImages,
+} from "@/lib/qr/type-previews";
+import type { QRType } from "@/lib/qr/types";
+import { cn } from "@/lib/utils";
 import { useHoveredType } from "./hover-preview";
 import { useQRWizard } from "./use-qr-wizard";
 
@@ -27,40 +35,58 @@ const QRRenderer = dynamic(() => import("./qr-renderer"), {
   loading: () => <Skeleton className="aspect-square w-full rounded-lg" />,
 });
 
-/** Website is the friendly default before anything is hovered/selected. */
-const DEFAULT_PREVIEW_TYPE: QRType = "website";
+/**
+ * Step-1 sample artwork. All 16 are mounted and cross-faded by opacity
+ * so switching between cards is instant and flicker-free (the browser
+ * has them cached after first paint). Only the active one is in flow,
+ * so the phone scrolls to exactly its height.
+ */
+function StaticTypePreview({ type }: { type: QRType }) {
+  return (
+    <div className="relative min-h-full w-full bg-white">
+      {QR_TYPES.map((definition) => {
+        const active = definition.id === type;
+        return (
+          <Image
+            key={definition.id}
+            src={qrTypePreviewImages[definition.id]}
+            alt={active ? qrTypePreviewAlt(definition.name) : ""}
+            aria-hidden={!active}
+            width={QR_TYPE_PREVIEW_WIDTH}
+            height={QR_TYPE_PREVIEW_HEIGHT}
+            sizes="(max-width: 1024px) 90vw, 336px"
+            priority={definition.id === DEFAULT_PREVIEW_TYPE}
+            className={cn(
+              "block h-auto w-full transition-opacity duration-200 ease-out motion-reduce:transition-none",
+              active ? "relative opacity-100" : "pointer-events-none absolute inset-x-0 top-0 opacity-0",
+            )}
+          />
+        );
+      })}
+    </div>
+  );
+}
 
 function MobilePagePreview() {
   const { state } = useQRWizard();
   const hovered = useHoveredType();
 
-  // Two explicit modes:
-  //  - Demo  (homepage hover, or the default before any selection): a
-  //    real Live-demo fixture, always badged "Live demo".
-  //  - User  (a type is selected + content exists): only the user's real
-  //    data, with honest empty states — no demo values leak in.
-  // Hover only happens on Step 1, so user data (Steps 2–4) is never
-  // overridden, and hover never touches URL or draft state.
-  let content: QRContent;
-  let demo: boolean;
-  if (hovered) {
-    content = demoFixtureFor(hovered);
-    demo = true;
-  } else if (state.content) {
-    content = state.content;
-    demo = false;
-  } else {
-    content = demoFixtureFor(DEFAULT_PREVIEW_TYPE);
-    demo = true;
-  }
-  const typeName = getQRType(content.type).name;
+  // Two explicit modes (see lib/qr/type-previews.ts):
+  //  - Step 1 → the supplied static sample artwork for
+  //    hovered ?? selected ?? website. Hover never selects, never
+  //    touches the URL, the draft, or the active tab.
+  //  - Step 2+ → the REAL React destination rendered from the user's
+  //    own content, with honest empty states.
+  const previewType: QRType = hovered ?? state.selectedType ?? DEFAULT_PREVIEW_TYPE;
+  const showSample = state.step === 1 || hovered !== null;
+  const typeName = getQRType(showSample ? previewType : (state.content?.type ?? previewType)).name;
 
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between px-0.5">
-        {demo ? (
+        {showSample ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 font-mono text-[10px] font-semibold tracking-[0.1em] text-accent uppercase">
-            <span className="size-1.5 rounded-full bg-accent" /> Live demo
+            <span className="size-1.5 rounded-full bg-accent" /> Sample
           </span>
         ) : (
           <span className="font-mono text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
@@ -69,14 +95,20 @@ function MobilePagePreview() {
         )}
         <span className="text-[11px] font-medium text-muted-foreground">{typeName}</span>
       </div>
-      <PhoneFrame>
-        {/* Only the screen content cross-fades — the frame stays put. */}
-        <div
-          key={content.type + String(demo)}
-          className="min-h-full animate-in fade-in-0 slide-in-from-bottom-1 duration-200 motion-reduce:animate-none"
-        >
-          <MobileDestination content={content} />
-        </div>
+      {/* `bare` while showing supplied artwork: the image already IS the
+          whole screen, so our status bar / island / home indicator would
+          duplicate or cover it. */}
+      <PhoneFrame bare={showSample}>
+        {showSample ? (
+          <StaticTypePreview type={previewType} />
+        ) : (
+          <div
+            key={state.content?.type ?? "empty"}
+            className="min-h-full animate-in fade-in-0 slide-in-from-bottom-1 duration-200 motion-reduce:animate-none"
+          >
+            {state.content && <MobileDestination content={state.content} />}
+          </div>
+        )}
       </PhoneFrame>
     </div>
   );

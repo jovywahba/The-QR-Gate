@@ -55,7 +55,10 @@ function StaticTypePreview({ type }: { type: QRType }) {
             width={QR_TYPE_PREVIEW_WIDTH}
             height={QR_TYPE_PREVIEW_HEIGHT}
             sizes="(max-width: 1024px) 90vw, 336px"
-            priority={definition.id === DEFAULT_PREVIEW_TYPE}
+            // Default is eagerly preloaded; the rest fetch up front too so
+            // switching between cards is instant with no first-hover flash.
+            // (Optimized variants are tiny — ~20–40 KB each.)
+            {...(definition.id === DEFAULT_PREVIEW_TYPE ? { priority: true } : { loading: "eager" as const })}
             className={cn(
               "block h-auto w-full transition-opacity duration-200 ease-out motion-reduce:transition-none",
               active ? "relative opacity-100" : "pointer-events-none absolute inset-x-0 top-0 opacity-0",

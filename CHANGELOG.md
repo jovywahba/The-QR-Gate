@@ -10,6 +10,17 @@ Format: `YYYY-MM-DD · [design vX.Y | template] what changed · backport? (which
 - 2026-06-17 · [template] Modular landing page added: hero (with product-preview frame), social-proof, comparison, feature grid, how-it-works, pricing card, FAQ (native `<details>`), CTA band — all driven by `lib/landing.ts`. Shared `PricingCard` used by landing + `/pricing`. Halfstack endorser touchpoints formalized (hero eyebrow, footer, auth, about, metadata `creator`/`publisher`). PROJECT.md gained the post-launch growth checklist (see `docs/GROWTH.md`).
 - 2026-06-17 · [template] Initial scaffold built & type-checked (tsc clean): Next 15 + React 19 + Tailwind v4 + shadcn (new-york/stone/0.5rem) wired to Design System v1.0 tokens; Supabase auth (email+password) + RLS migration; Stripe trial Checkout + verified webhook + portal; Resend; marketing site (landing, pricing, alternatives/[slug], about, blog, docs, status, legal) + product shell; Vercel Analytics. `lib/site.ts` is the per-app config seam.
 
+## App history (The QR Gate — beyond the template)
+- 2026-07-24 · Professional **authenticated home & dashboard**. Redesigned `/dashboard`
+  (welcome header, real overview cards incl. Unique Visitors, range-toggled scan-activity
+  chart, most-scanned QR, recent QR list). **My QR Codes** got search + destination/unique/
+  updated columns + mobile cards + tracking-honest scan labels. **Per-QR analytics** added
+  OS breakdown + privacy-safe recent activity. New **Settings** page; account menu + sidebar
+  gained Settings + Create New QR; `/create?new=1` starts a clean draft with a resume banner.
+  New analytics SQL `0003_dashboard_analytics.sql` (unique visitors, daily activity, OS,
+  recent) — additive/idempotent; app degrades gracefully until applied. Pure display/parse
+  helpers unit-tested. tsc/lint clean, 194 tests pass.
+
 ## Design System
 - v1.0 — initial token set (see `Halfstack Design System/`).
 - v1.1 — additive: components, page patterns, system-level rules (tokens/type/spacing/color unchanged from v1.0). Essentials built into `_template`; full spec in `Halfstack Design System/` (`*v1.1*`). Deferred to per-product: charts, calendar/date-picker, command palette, popover, accordion, breadcrumb, pagination, combobox, slider, input-OTP, file upload.

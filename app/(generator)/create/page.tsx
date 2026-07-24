@@ -51,9 +51,15 @@ async function loadSavedRecord(
 export default async function CreatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; step?: string; id?: string }>;
+  searchParams: Promise<{ type?: string; step?: string; id?: string; new?: string }>;
 }) {
   const params = await searchParams;
+
+  // /create?new=1 — an intentional fresh start from the dashboard: discard any
+  // leftover draft and open Step 1 clean, so a finished QR is never restored.
+  if (params.new === "1" && !params.id) {
+    return <QRBuilder initialType={null} initialStep={1} startFresh />;
+  }
 
   if (params.id && /^[0-9a-f-]{36}$/.test(params.id)) {
     // Auth check first — the redirect() must NOT be inside a try/catch

@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CreditCard, LayoutDashboard, Plus, QrCode, type LucideIcon } from "lucide-react";
+import { CreditCard, LayoutDashboard, Plus, QrCode, Settings, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type NavItem = { href: string; label: string; icon: LucideIcon; exact?: boolean };
+type NavItem = { href: string; label: string; icon: LucideIcon; exact?: boolean; matchPath?: string };
 type NavGroup = { label?: string; items: NavItem[] };
 
 // Single source of truth for the product's primary nav — shared by the desktop
@@ -15,14 +15,16 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
       { href: "/dashboard/qr-codes", label: "My QR Codes", icon: QrCode },
+      // Fresh start — clears any leftover draft (see /create?new=1).
+      { href: "/create?new=1", label: "Create QR", icon: Plus, matchPath: "/create" },
     ],
   },
   {
     label: "Account",
-    items: [{ href: "/dashboard/billing", label: "Billing", icon: CreditCard }],
-  },
-  {
-    items: [{ href: "/", label: "Create New QR", icon: Plus }],
+    items: [
+      { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
+      { href: "/dashboard/settings", label: "Settings", icon: Settings },
+    ],
   },
 ];
 
@@ -39,7 +41,8 @@ export function AppNav({ onNavigate }: { onNavigate?: () => void }) {
             </div>
           ) : null}
           {group.items.map((item) => {
-            const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+            const target = item.matchPath ?? item.href;
+            const active = item.exact ? pathname === target : pathname.startsWith(target);
             const Icon = item.icon;
             return (
               <Link

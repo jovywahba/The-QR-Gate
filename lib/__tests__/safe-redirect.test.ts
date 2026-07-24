@@ -23,3 +23,25 @@ describe("safeRedirectPath (open-redirect guard)", () => {
     expect(safeRedirectPath(42, "/fb")).toBe("/fb");
   });
 });
+
+// The sign-in server action + middleware both resolve their post-auth
+// destination through this guard with a "/dashboard" fallback. These cases
+// pin the auth-return contract the dashboard work depends on.
+describe("post-auth destination contract (fallback = /dashboard)", () => {
+  it("sends a normal sign-in (no redirect) to /dashboard", () => {
+    expect(safeRedirectPath(undefined, "/dashboard")).toBe("/dashboard");
+    expect(safeRedirectPath("", "/dashboard")).toBe("/dashboard");
+  });
+
+  it("restores a valid in-flow QR wizard step", () => {
+    expect(safeRedirectPath("/create?type=website&step=4", "/dashboard")).toBe(
+      "/create?type=website&step=4",
+    );
+    expect(safeRedirectPath("/create?id=abc&step=2", "/dashboard")).toBe("/create?id=abc&step=2");
+  });
+
+  it("never honors a stale/hostile redirect — falls back to /dashboard", () => {
+    expect(safeRedirectPath("https://evil.com/create", "/dashboard")).toBe("/dashboard");
+    expect(safeRedirectPath("//evil.com", "/dashboard")).toBe("/dashboard");
+  });
+});

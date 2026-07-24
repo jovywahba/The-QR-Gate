@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CreditCard, LayoutDashboard, LogOut, QrCode } from "lucide-react";
+import { CreditCard, LayoutDashboard, LogOut, Plus, QrCode, Settings } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -64,9 +64,22 @@ export function UserMenu({ account }: { account: Account }) {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
+          <Link href="/create?new=1">
+            <Plus />
+            Create New QR
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
           <Link href="/dashboard/billing">
             <CreditCard />
             Billing
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard/settings">
+            <Settings />
+            Settings
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

@@ -145,11 +145,14 @@ export function QRWizardProvider({
   initialType = null,
   initialStep = 1,
   initialRecord,
+  startFresh = false,
 }: {
   children: React.ReactNode;
   initialType?: QRType | null;
   initialStep?: WizardStep;
   initialRecord?: WizardInitialRecord;
+  /** Discard any leftover sessionStorage draft and start Step 1 clean (/create?new=1). */
+  startFresh?: boolean;
 }) {
   const [state, setState] = React.useState<QRWizardState>(() => {
     const type = initialType && isQRType(initialType) ? initialType : null;
@@ -236,6 +239,13 @@ export function QRWizardProvider({
      Skipped entirely when editing a saved record (the DB row wins). */
   React.useEffect(() => {
     if (initialRecord) {
+      setHydrated(true);
+      return;
+    }
+    // Fresh start (dashboard "Create QR"): drop any leftover draft so the
+    // previous/finished QR is never silently restored.
+    if (startFresh) {
+      clearDraft();
       setHydrated(true);
       return;
     }

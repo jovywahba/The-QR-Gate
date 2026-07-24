@@ -104,13 +104,20 @@ export function QRBuilder({
   initialType = null,
   initialStep = 1,
   initialRecord,
+  startFresh = false,
 }: {
   initialType?: QRType | null;
   initialStep?: WizardStep;
   initialRecord?: SavedQRRecord;
+  startFresh?: boolean;
 }) {
   return (
-    <QRWizardProvider initialType={initialType} initialStep={initialStep} initialRecord={initialRecord}>
+    <QRWizardProvider
+      initialType={initialType}
+      initialStep={initialStep}
+      initialRecord={initialRecord}
+      startFresh={startFresh}
+    >
       <HoverPreviewProvider>
         <BuilderShell />
       </HoverPreviewProvider>

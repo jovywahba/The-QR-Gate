@@ -12,8 +12,16 @@
 | Incumbent | QR Code Generator PRO (Bitly, qr-code-generator.com) |
 | One-line pitch | Real, scannable QR codes — 16 types, 4 steps, half the price |
 | Owner | Jovy |
-| Stage | `4 Polish` (Parts 1–4 built + live-verified; deployed) |
+| Stage | `4 Polish` (Parts 1–5 + account dashboard built & deployed; live-verified) |
 | Live URL | https://the-qr-gate.vercel.app |
+
+> ⚠️ **DB action required for analytics/dashboard:** apply
+> `supabase/migrations/0003_dashboard_analytics.sql` (or paste
+> `supabase/SUPABASE_DASHBOARD_ANALYTICS.sql`) in the Supabase SQL Editor.
+> It's additive + idempotent (only `create or replace` on the analytics
+> functions). Until it runs, the dashboard degrades gracefully — Unique
+> Visitors shows "—" and the daily-activity chart shows an honest
+> "warming up" state instead of a fabricated graph.
 
 ## Pricing (record the claim — keep it honest)
 
@@ -107,6 +115,28 @@
 ---
 
 ## App notes
+- **Part 5 (done):** real accounts — Supabase email+password **and** Google OAuth,
+  a $10/mo **Pro** subscription (Stripe Checkout + verified webhook + portal,
+  idempotent), a free-tier **3-active-QR quota** enforced atomically server-side
+  (`try_activate_qr` + a publish-guard trigger), and **real scan analytics** —
+  `/q/[slug]` records one hosted-page scan and `/r/[slug]` records + 302-redirects
+  tracked URL codes, with bots / prefetches / the owner's own previews excluded and
+  a one-way visitor hash (never a raw IP). SQL in
+  `supabase/migrations/0002_auth_billing_analytics.sql`.
+- **Account home & dashboard (done):** a proper signed-in product home at
+  `/dashboard` — "Welcome back, {name}", real overview cards (Active QR Codes ·
+  Total Scans · Unique Visitors · Last 30 Days), a range-toggled scan-activity
+  chart (7/30/90/all), the most-scanned QR, and recent QR codes with per-row
+  actions. **My QR Codes** (`/dashboard/qr-codes`) gained search + destination /
+  unique / updated columns + mobile cards + tracking-honest scan labels ("No scans
+  yet" / "Tracking disabled" / "Native QR — not trackable"). **Per-QR analytics**
+  (`/dashboard/qr-codes/[id]/analytics`) added device / OS / browser / country /
+  referrer breakdowns + a privacy-safe recent-activity feed (no IP, no identity).
+  New **Settings** page (`/dashboard/settings`, edit display name), account menu +
+  sidebar gained Settings + Create New QR, and normal sign-in lands on `/dashboard`
+  (the in-flow QR-wizard redirect is still preserved). New analytics SQL:
+  `supabase/migrations/0003_dashboard_analytics.sql`. Data layer is owner-scoped
+  security-definer RPCs (no N+1); the app degrades gracefully if 0003 isn't applied.
 - **Build runs in 4 parts** (see `CLAUDE.md`). Part 1 shipped the core engine:
   16-type registry + wizard shell, with Website / WhatsApp / WiFi / vCard fully
   working end-to-end (validated content → real scannable QR → 1024px PNG download),

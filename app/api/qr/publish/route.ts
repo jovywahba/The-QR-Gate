@@ -52,6 +52,11 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return jsonError("Sign in to continue.", 401);
 
+  // Suspended accounts cannot publish/edit (defense in depth — the auth ban
+  // also invalidates their sessions; this closes the pre-expiry window).
+  const { data: me } = await supabase.from("profiles").select("suspended_at").eq("id", user.id).maybeSingle();
+  if (me?.suspended_at) return jsonError("Your account is suspended.", 403);
+
   let body: {
     qrCodeId?: string;
     type?: string;

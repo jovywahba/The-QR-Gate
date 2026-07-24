@@ -215,6 +215,7 @@ export default async function DashboardPage({
                           className={cn(
                             "font-mono text-[10px] uppercase",
                             badge.tone === "published" && "border-[#1B8A5B]/40 text-[#1B8A5B]",
+                            badge.tone === "paused" && "border-[#D9A21B]/50 text-[#D9A21B]",
                             badge.tone === "archived" && "text-muted-foreground",
                           )}
                         >

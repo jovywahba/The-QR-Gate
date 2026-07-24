@@ -14,11 +14,30 @@ pnpm dev
 
 ## Supabase setup
 
-1. Create a Supabase project.
-2. Run [`supabase/SUPABASE_FULL_SETUP.sql`](supabase/SUPABASE_FULL_SETUP.sql)
-   once in the Supabase SQL Editor (idempotent — safe to re-run).
-3. Put the project URL, anon key, and service-role key in `.env.local`.
-4. Verify the live security posture: `pnpm verify:supabase`.
+Run these in the Supabase SQL Editor, in order (each is idempotent — safe to re-run):
+
+1. [`supabase/SUPABASE_FULL_SETUP.sql`](supabase/SUPABASE_FULL_SETUP.sql) — core schema, RLS, storage.
+2. [`supabase/SUPABASE_AUTH_BILLING_ANALYTICS.sql`](supabase/SUPABASE_AUTH_BILLING_ANALYTICS.sql) — auth profiles, billing, scan analytics (migrations `0002`+`0003`).
+3. [`supabase/SUPABASE_PRODUCT_ADMIN_EXPANSION.sql`](supabase/SUPABASE_PRODUCT_ADMIN_EXPANSION.sql) — admin platform, presence, pause/suspend/entitlements (migration `0004`).
+
+Then:
+
+4. Put the project URL, anon key, and service-role key in `.env.local`.
+5. Verify the live security posture: `pnpm verify:supabase`.
+
+### Bootstrap the first admin
+
+After step 3, grant yourself super-admin **once** (find your UUID with
+`select id from auth.users where email = 'you@example.com';`):
+
+```sql
+insert into public.admin_memberships (user_id, role, is_active)
+values ('<YOUR-AUTH-USER-UUID>', 'super_admin', true)
+on conflict (user_id) do update set role = 'super_admin', is_active = true;
+```
+
+Then reload the app — an **Admin panel** link appears in your account menu (`/admin`).
+Never commit a real UUID.
 
 ## Checks
 

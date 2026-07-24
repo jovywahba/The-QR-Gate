@@ -12,16 +12,25 @@
 | Incumbent | QR Code Generator PRO (Bitly, qr-code-generator.com) |
 | One-line pitch | Real, scannable QR codes — 16 types, 4 steps, half the price |
 | Owner | Jovy |
-| Stage | `4 Polish` (Parts 1–5 + account dashboard built & deployed; live-verified) |
+| Stage | `4 Polish` (Parts 1–5 + account dashboard + admin platform; live-verified) |
 | Live URL | https://the-qr-gate.vercel.app |
 
-> ⚠️ **DB action required for analytics/dashboard:** apply
-> `supabase/migrations/0003_dashboard_analytics.sql` (or paste
-> `supabase/SUPABASE_DASHBOARD_ANALYTICS.sql`) in the Supabase SQL Editor.
-> It's additive + idempotent (only `create or replace` on the analytics
-> functions). Until it runs, the dashboard degrades gracefully — Unique
-> Visitors shows "—" and the daily-activity chart shows an honest
-> "warming up" state instead of a fabricated graph.
+### Migration status (live-verified 2026-07-24 via `node scripts/verify-supabase.mjs` → 35/35)
+
+| Migration | What | Applied to prod? |
+|-----------|------|------------------|
+| `0000`–`0002` | Core schema, auth, billing, analytics, RLS | ✅ applied |
+| `0003_dashboard_analytics.sql` | unique visitors, daily activity, OS breakdown, recent feed | ✅ applied (confirmed live — dashboard shows real numbers, not the fallback) |
+| `0004_admin_expansion.sql` | admin platform, presence, pause, suspension, entitlements | ⏳ **NOT applied yet — run it** |
+
+> ⚠️ **DB action required for the admin panel + pause/suspend features:** paste
+> `supabase/SUPABASE_PRODUCT_ADMIN_EXPANSION.sql` (identical to migration `0004`)
+> into the Supabase SQL Editor, then **bootstrap the first admin** (instructions
+> are in the file header — insert your `auth.users` UUID into `admin_memberships`
+> as `super_admin`). Until `0004` runs, the app keeps working normally; `/admin`
+> shows a "run the migration" notice and Pause/Duplicate on a QR fail gracefully.
+> I have the service-role key (REST) but **no DDL path** (no DB password / linked
+> CLI), so I cannot apply DDL myself — this step is yours.
 
 ## Pricing (record the claim — keep it honest)
 
@@ -115,6 +124,23 @@
 ---
 
 ## App notes
+- **Admin platform (done, needs `0004` applied):** a secure `/admin` surface
+  distinct from the user dashboard. DB-enforced roles (`super_admin`/`admin`/
+  `support`/`analyst`) via `admin_memberships` + a centralized server guard
+  (`lib/admin/guard.ts`) that 404s non-admins; **every privileged DB function
+  re-checks the role** so the guard isn't the only gate. Pages: Overview (real
+  metrics + live "online now" presence), Users (search/filter) + user detail with
+  audited actions (suspend/reactivate via a real auth ban, password reset,
+  grant/remove complimentary Pro), QR moderation (pause/unpause/archive), Audit
+  Log (append-only), Subscriptions (read-only; Stripe stays source of truth),
+  Admin Team (super-admin only). Privacy-conscious presence heartbeat
+  (`/api/presence`, opaque per-tab id, no IP/token). New: `0004_admin_expansion.sql`
+  + `SUPABASE_PRODUCT_ADMIN_EXPANSION.sql`.
+- **Pause + Duplicate (done):** users can Pause a published QR (public page shows a
+  polished paused notice; slug + analytics preserved; frees a free-plan slot) and
+  Duplicate any QR into a new draft (`— Copy`; never copies slug/analytics/publish
+  state; no slot consumed until published). Suspended accounts are blocked in the
+  app shell + at publish time (defense in depth over the auth ban).
 - **Part 5 (done):** real accounts — Supabase email+password **and** Google OAuth,
   a $10/mo **Pro** subscription (Stripe Checkout + verified webhook + portal,
   idempotent), a free-tier **3-active-QR quota** enforced atomically server-side

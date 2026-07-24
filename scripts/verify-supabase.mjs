@@ -208,6 +208,29 @@ try {
       .eq("id", bypassRow?.id);
     check("direct PATCH to published is blocked", "deny", bypassErr ? "deny" : "allow");
 
+    // ── Part 8 (migration 0004): the INSERT quota-bypass + self-suspend fixes ──
+    const { error: adm0004 } = await A.client.from("admin_memberships").select("user_id").limit(1);
+    const has0004 = !(adm0004 && (adm0004.code === "PGRST205" || /schema cache|does not exist/i.test(adm0004.message ?? "")));
+    if (has0004) {
+      // A free user cannot mint a live QR by INSERTing status='published' directly.
+      const { data: insPub, error: insPubErr } = await A.client
+        .from("qr_codes")
+        .insert({ user_id: A.id, type: "website", status: "published", slug: `qapub${stamp}`, content: { type: "website", data: { url: "https://example.com" } }, design: {} })
+        .select("id")
+        .maybeSingle();
+      check("direct INSERT of a published row is blocked", "deny", insPubErr || !insPub ? "deny" : "allow");
+      if (insPub?.id) await admin.from("qr_codes").delete().eq("id", insPub.id);
+
+      // A user cannot write admin-controlled profile columns (e.g. self-clear suspension).
+      const { error: selfSusErr } = await A.client
+        .from("profiles")
+        .update({ suspended_at: null })
+        .eq("id", A.id);
+      check("user cannot update suspended_at on own profile", "deny", selfSusErr ? "deny" : "allow");
+    } else {
+      console.log("\nℹ️  Migration 0004 not applied — skipping admin/INSERT-guard checks.\n");
+    }
+
     // Scan-event RLS.
     const pubId = ids[0];
     await admin.from("qr_scan_events").insert({ qr_code_id: pubId, device_type: "mobile", is_bot: false, visitor_hash: "hashX" });

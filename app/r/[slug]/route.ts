@@ -24,6 +24,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const admin = createAdminClient();
   const row = await resolveSlug(admin, slug);
+  // A paused redirect QR withholds its destination and shows the paused notice.
+  if (row?.status === "paused") return NextResponse.redirect(new URL(`/q/${slug}`, request.url));
   if (!row || row.status !== "published" || !row.destination_url) return home(request);
   if (!/^https?:\/\//i.test(row.destination_url)) return home(request);
 

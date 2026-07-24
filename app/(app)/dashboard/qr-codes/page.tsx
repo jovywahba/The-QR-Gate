@@ -33,7 +33,7 @@ import { QRRowActions } from "./row-actions";
 
 export const metadata: Metadata = { title: "My QR Codes" };
 
-const FILTERS = ["all", "published", "draft", "archived"] as const;
+const FILTERS = ["all", "published", "paused", "draft", "archived"] as const;
 type Filter = (typeof FILTERS)[number];
 const SORTS = ["newest", "updated", "scans", "recent"] as const;
 type Sort = (typeof SORTS)[number];
@@ -397,6 +397,7 @@ function StatusPill({ badge }: { badge: { label: string; tone: string } }) {
       className={cn(
         "font-mono text-[10px] uppercase",
         badge.tone === "published" && "border-[#1B8A5B]/40 text-[#1B8A5B]",
+        badge.tone === "paused" && "border-[#D9A21B]/50 text-[#D9A21B]",
         badge.tone === "archived" && "text-muted-foreground",
       )}
     >

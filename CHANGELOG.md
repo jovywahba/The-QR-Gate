@@ -11,6 +11,18 @@ Format: `YYYY-MM-DD · [design vX.Y | template] what changed · backport? (which
 - 2026-06-17 · [template] Initial scaffold built & type-checked (tsc clean): Next 15 + React 19 + Tailwind v4 + shadcn (new-york/stone/0.5rem) wired to Design System v1.0 tokens; Supabase auth (email+password) + RLS migration; Stripe trial Checkout + verified webhook + portal; Resend; marketing site (landing, pricing, alternatives/[slug], about, blog, docs, status, legal) + product shell; Vercel Analytics. `lib/site.ts` is the per-app config seam.
 
 ## App history (The QR Gate — beyond the template)
+- 2026-07-24 · **Admin platform + moderation primitives.** Secure `/admin` (DB-enforced
+  roles super_admin/admin/support/analyst via `admin_memberships`; centralized guard that
+  404s non-admins; every privileged RPC re-checks the role). Real Overview (metrics +
+  "online now" presence), Users + user detail with audited actions (suspend via auth ban,
+  reset password, grant/remove comp Pro), QR moderation (pause/unpause/archive), append-only
+  Audit Log, Subscriptions (read-only), Admin Team (super-admin only). Privacy-safe presence
+  heartbeat (`/api/presence`, opaque per-tab id, no IP/token). User **Pause** (paused public
+  notice, preserves slug/analytics, frees a slot) + **Duplicate** (new draft, no slot until
+  published). Suspended accounts blocked in the shell + at publish. New SQL
+  `0004_admin_expansion.sql` + `SUPABASE_PRODUCT_ADMIN_EXPANSION.sql` (idempotent; app
+  degrades gracefully until applied). Live security re-verified 35/35. Admin permission
+  matrix unit-tested. tsc/lint clean, 238 tests pass, build green.
 - 2026-07-24 · Professional **authenticated home & dashboard**. Redesigned `/dashboard`
   (welcome header, real overview cards incl. Unique Visitors, range-toggled scan-activity
   chart, most-scanned QR, recent QR list). **My QR Codes** got search + destination/unique/

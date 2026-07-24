@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { HalfstackEndorser } from "@/components/brand/logo";
+import { PausedNotice } from "@/components/qr-public/paused-notice";
 import { PublicQRRenderer } from "@/components/qr-public/public-qr-renderer";
 import type { PublicAssetRow } from "@/components/qr-public/resolver";
 import { recordScan, resolveSlug } from "@/lib/analytics/record";
@@ -88,7 +89,18 @@ export async function generateMetadata({
 export default async function PublicQRPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const record = await fetchPublicQR(slug);
-  if (!record) notFound();
+  if (!record) {
+    // Distinguish a paused QR (polished notice) from a genuinely missing one.
+    if (isValidSlug(slug) && serverSupabaseConfig().configured) {
+      try {
+        const row = await resolveSlug(createAdminClient(), slug);
+        if (row?.status === "paused") return <PausedNotice />;
+      } catch {
+        /* fall through to 404 */
+      }
+    }
+    notFound();
+  }
 
   await recordVisit(slug);
 

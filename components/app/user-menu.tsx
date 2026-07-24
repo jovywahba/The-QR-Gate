@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CreditCard, LayoutDashboard, LogOut, Plus, QrCode, Settings } from "lucide-react";
+import { CreditCard, LayoutDashboard, LogOut, Plus, QrCode, Settings, ShieldAlert } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -17,6 +17,7 @@ export type Account = {
   email: string;
   name?: string | null;
   avatarUrl?: string | null;
+  isAdmin?: boolean;
 };
 
 function initialsFor(account: Account): string {
@@ -82,6 +83,17 @@ export function UserMenu({ account }: { account: Account }) {
             Settings
           </Link>
         </DropdownMenuItem>
+        {account.isAdmin ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/admin">
+                <ShieldAlert />
+                Admin panel
+              </Link>
+            </DropdownMenuItem>
+          </>
+        ) : null}
         <DropdownMenuSeparator />
         <form action={signOut} className="w-full">
           <DropdownMenuItem asChild>

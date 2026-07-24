@@ -2,15 +2,19 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Archive,
   ArchiveRestore,
   BarChart3,
   Copy,
+  CopyPlus,
   Download,
   ExternalLink,
   MoreHorizontal,
+  Pause,
   Pencil,
+  Play,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -32,7 +36,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { archiveQr, restoreQr } from "./actions";
+import { archiveQr, duplicateQr, pauseQr, restoreQr, unpauseQr } from "./actions";
 
 export function QRRowActions({
   qrCodeId,
@@ -49,6 +53,7 @@ export function QRRowActions({
   publicUrl: string | null;
   copyUrl: string | null;
 }) {
+  const router = useRouter();
   const [pending, startTransition] = React.useTransition();
   const [confirmOpen, setConfirmOpen] = React.useState(false);
 
@@ -57,6 +62,16 @@ export function QRRowActions({
       const result = await action();
       if (result.error) toast.error(result.error);
       else toast.success(success);
+    });
+
+  const duplicate = () =>
+    startTransition(async () => {
+      const result = await duplicateQr(qrCodeId);
+      if (result.error) toast.error(result.error);
+      else {
+        toast.success("Duplicated as a new draft.");
+        if (result.newId) router.push(`/create?id=${result.newId}&step=2`);
+      }
     });
 
   async function copyLink() {
@@ -115,6 +130,22 @@ export function QRRowActions({
             >
               <Copy />
               Copy link
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem onSelect={() => duplicate()}>
+            <CopyPlus />
+            Duplicate
+          </DropdownMenuItem>
+          {status === "published" && (
+            <DropdownMenuItem onSelect={() => run(() => pauseQr(qrCodeId), "QR code paused.")}>
+              <Pause />
+              Pause
+            </DropdownMenuItem>
+          )}
+          {status === "paused" && (
+            <DropdownMenuItem onSelect={() => run(() => unpauseQr(qrCodeId), "QR code unpaused.")}>
+              <Play />
+              Unpause
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />

@@ -41,11 +41,11 @@ export function scanDisplay(mode: TrackingMode, scans: number | null | undefined
   return { kind: "count", label: `${n.toLocaleString()} ${n === 1 ? "scan" : "scans"}`, scans: n };
 }
 
-export type StatusTone = "published" | "draft" | "archived";
+export type StatusTone = "published" | "draft" | "archived" | "paused";
 export type StatusBadge = { label: string; tone: StatusTone };
 
 /**
- * Published / Draft / Archived — the three states the schema actually
+ * Published / Draft / Archived / Paused — the states the schema
  * distinguishes. (We deliberately don't synthesize an "unpublished
  * changes" badge: edits live client-side until the user re-commits, so
  * a published row is always in sync with its last publish — there's no
@@ -57,6 +57,8 @@ export function statusBadge(status: string): StatusBadge {
       return { label: "Published", tone: "published" };
     case "archived":
       return { label: "Archived", tone: "archived" };
+    case "paused":
+      return { label: "Paused", tone: "paused" };
     default:
       return { label: "Draft", tone: "draft" };
   }

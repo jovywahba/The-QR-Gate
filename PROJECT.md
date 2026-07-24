@@ -22,6 +22,7 @@
 | `0000`–`0002` | Core schema, auth, billing, analytics, RLS | ✅ applied |
 | `0003_dashboard_analytics.sql` | unique visitors, daily activity, OS breakdown, recent feed | ✅ applied (confirmed live — dashboard shows real numbers, not the fallback) |
 | `0004_admin_expansion.sql` | admin platform, presence, pause, suspension, entitlements | ⏳ **NOT applied yet — run it** |
+| `0005_product_features.sql` | scheduling, folders, tags, version history, notifications | ⏳ **NOT applied yet — run it** |
 
 > ⚠️ **DB action required for the admin panel + pause/suspend features:** paste
 > `supabase/SUPABASE_PRODUCT_ADMIN_EXPANSION.sql` (identical to migration `0004`)
@@ -124,6 +125,22 @@
 ---
 
 ## App notes
+- **Product features (Part 9, needs `0005` applied):** **Analytics CSV export**
+  (owner-scoped, formula-injection-safe, no IP/identity — no migration needed);
+  **UTM builder** on URL types (merges into the encoded URL; tested); **QR Health
+  Score** 0–100 over the readability engine (Excellent/Good/Needs Attention/Unsafe;
+  Unsafe still blocks download; shown in Step 3; no migration); real **legal pages**
+  (`/privacy`, `/terms`) reflecting actual behavior, flagged for legal review;
+  **scheduling** (start/end/timezone/fallback columns + server-time enforcement on
+  `/q`+`/r` with "not available yet"/"ended" notices + a Schedule dialog + tested
+  util); **version history** snapshots on publish (`snapshot_qr_version`); **first-scan
+  celebration** (owner notification on the first human scan + a subtle dashboard
+  toast, reduced-motion aware); and the **folders/tags** schema. New SQL:
+  `0005_product_features.sql` + `SUPABASE_PRODUCT_FEATURES.sql`. All degrade
+  gracefully until applied. **Deferred (schema/roadmap):** folders/tags UI, version
+  restore UI, password-protected pages, custom slugs + aliases, bulk CSV import,
+  weekly email reports, AI Design Assistant, SEO cornerstone articles, verified
+  competitor comparison pages, status-monitoring health endpoint.
 - **Admin platform (done, needs `0004` applied):** a secure `/admin` surface
   distinct from the user dashboard. DB-enforced roles (`super_admin`/`admin`/
   `support`/`analyst`) via `admin_memberships` + a centralized server guard

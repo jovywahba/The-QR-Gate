@@ -302,5 +302,12 @@ export async function POST(request: Request) {
         ? trackedRedirectUrl(finalSlug)
         : null;
 
+  // Snapshot this published version for history (best-effort; needs migration 0005).
+  try {
+    await supabase.rpc("snapshot_qr_version", { p_qr_id: qrCodeId });
+  } catch {
+    /* version history is additive — never fail a publish over it */
+  }
+
   return NextResponse.json({ qrCodeId, slug: finalSlug, publicUrl, trackingMode: mode });
 }

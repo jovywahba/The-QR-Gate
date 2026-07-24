@@ -86,24 +86,67 @@ export async function recordScan(
     console.error("scan record failed:", error.code);
     return { recorded: false, reason: "error" };
   }
+
+  // First real human scan → celebrate the owner (best-effort, deduped by a
+  // partial unique index; awaited so it completes on serverless).
+  if (!bot && ownerId) {
+    await maybeFirstScanNotification(admin, qrCodeId, ownerId);
+  }
+
   return { recorded: !bot, isBot: bot };
 }
 
-/** Resolve a public slug to the minimal routing/ownership fields (service role). */
-export async function resolveSlug(
-  admin: Admin,
-  slug: string,
-): Promise<{
+/** Insert a one-time "first scan" notification when this is the QR's first human scan. */
+async function maybeFirstScanNotification(admin: Admin, qrCodeId: string, ownerId: string): Promise<void> {
+  try {
+    const { count } = await admin
+      .from("qr_scan_events")
+      .select("id", { count: "exact", head: true })
+      .eq("qr_code_id", qrCodeId)
+      .eq("is_bot", false);
+    if ((count ?? 0) !== 1) return; // not the first (the row we just inserted)
+
+    const { data: qr } = await admin.from("qr_codes").select("name").eq("id", qrCodeId).maybeSingle();
+    // The partial unique index (type='first_scan') makes a duplicate a no-op.
+    await admin.from("user_notifications").insert({
+      user_id: ownerId,
+      type: "first_scan",
+      qr_code_id: qrCodeId,
+      title: "Your QR code got its first scan!",
+      body: qr?.name
+        ? `“${qr.name}” was just scanned for the first time.`
+        : "One of your QR codes was just scanned for the first time.",
+    });
+  } catch {
+    // Notifications are a nicety — never let them affect analytics/serving.
+  }
+}
+
+export type ResolvedSlug = {
   id: string;
   user_id: string;
   status: string;
   destination_url: string | null;
   tracking_mode: string;
-} | null> {
+  starts_at?: string | null;
+  ends_at?: string | null;
+  fallback_url?: string | null;
+};
+
+/** Resolve a public slug to the minimal routing/ownership fields (service role). */
+export async function resolveSlug(admin: Admin, slug: string): Promise<ResolvedSlug | null> {
+  // Schedule columns land in migration 0005; fall back gracefully if absent.
+  const full = await admin
+    .from("qr_codes")
+    .select("id, user_id, status, destination_url, tracking_mode, starts_at, ends_at, fallback_url")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (!full.error) return (full.data as ResolvedSlug) ?? null;
+
   const { data } = await admin
     .from("qr_codes")
     .select("id, user_id, status, destination_url, tracking_mode")
     .eq("slug", slug)
     .maybeSingle();
-  return data ?? null;
+  return (data as ResolvedSlug) ?? null;
 }

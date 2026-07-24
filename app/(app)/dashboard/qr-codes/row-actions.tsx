@@ -7,6 +7,7 @@ import {
   Archive,
   ArchiveRestore,
   BarChart3,
+  CalendarClock,
   Copy,
   CopyPlus,
   Download,
@@ -37,6 +38,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { archiveQr, duplicateQr, pauseQr, restoreQr, unpauseQr } from "./actions";
+import { ScheduleDialog } from "./schedule-dialog";
 
 export function QRRowActions({
   qrCodeId,
@@ -56,6 +58,7 @@ export function QRRowActions({
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
   const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [scheduleOpen, setScheduleOpen] = React.useState(false);
 
   const run = (action: () => Promise<{ error?: string }>, success: string) =>
     startTransition(async () => {
@@ -148,6 +151,17 @@ export function QRRowActions({
               Unpause
             </DropdownMenuItem>
           )}
+          {trackable && (
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                setScheduleOpen(true);
+              }}
+            >
+              <CalendarClock />
+              Schedule
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           {status === "archived" ? (
             <DropdownMenuItem onSelect={() => run(() => restoreQr(qrCodeId), "QR code restored.")}>
@@ -189,6 +203,10 @@ export function QRRowActions({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {trackable && (
+        <ScheduleDialog open={scheduleOpen} onOpenChange={setScheduleOpen} qrCodeId={qrCodeId} />
+      )}
     </div>
   );
 }

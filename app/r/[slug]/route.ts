@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { recordScan, resolveSlug } from "@/lib/analytics/record";
 import { serverSupabaseConfig } from "@/lib/qr/config";
+import { scheduleState } from "@/lib/qr/schedule";
 import { isValidSlug } from "@/lib/qr/slug";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -28,6 +29,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (row?.status === "paused") return NextResponse.redirect(new URL(`/q/${slug}`, request.url));
   if (!row || row.status !== "published" || !row.destination_url) return home(request);
   if (!/^https?:\/\//i.test(row.destination_url)) return home(request);
+
+  // Scheduling: before start / after end, don't send to the destination. Use a
+  // valid fallback URL if the owner set one, else show the hosted notice.
+  const schedule = scheduleState(row.starts_at, row.ends_at, Date.now());
+  if (schedule === "scheduled" || schedule === "expired") {
+    if (row.fallback_url && /^https?:\/\//i.test(row.fallback_url)) {
+      return NextResponse.redirect(row.fallback_url, 302);
+    }
+    return NextResponse.redirect(new URL(`/q/${slug}`, request.url));
+  }
 
   try {
     const supabase = await createClient();

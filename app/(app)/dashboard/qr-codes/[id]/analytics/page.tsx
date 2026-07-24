@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, BarChart3, ExternalLink } from "lucide-react";
+import { ArrowLeft, BarChart3, Download, ExternalLink } from "lucide-react";
 import { AppTopbar } from "@/components/app/app-topbar";
 import { Breakdown, DailyBars, type Point, type Slice } from "@/components/app/analytics-charts";
 import { StatCard } from "@/components/app/stat-card";
@@ -134,6 +134,14 @@ export default async function AnalyticsPage({
   return (
     <>
       <AppTopbar title="Analytics">
+        {summary.total > 0 ? (
+          <Button variant="outline" size="sm" asChild>
+            <a href={`/dashboard/qr-codes/${id}/export`} download>
+              <Download aria-hidden />
+              Export CSV
+            </a>
+          </Button>
+        ) : null}
         <Button variant="outline" size="sm" asChild>
           <Link href="/dashboard/qr-codes">
             <ArrowLeft aria-hidden />

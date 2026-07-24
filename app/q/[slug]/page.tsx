@@ -5,10 +5,12 @@ import { notFound } from "next/navigation";
 import { HalfstackEndorser } from "@/components/brand/logo";
 import { PausedNotice } from "@/components/qr-public/paused-notice";
 import { PublicQRRenderer } from "@/components/qr-public/public-qr-renderer";
+import { ScheduleNotice } from "@/components/qr-public/schedule-notice";
 import type { PublicAssetRow } from "@/components/qr-public/resolver";
-import { recordScan, resolveSlug } from "@/lib/analytics/record";
+import { recordScan, resolveSlug, type ResolvedSlug } from "@/lib/analytics/record";
 import { serverSupabaseConfig } from "@/lib/qr/config";
 import { isQRType } from "@/lib/qr/registry";
+import { scheduleState } from "@/lib/qr/schedule";
 import { isValidSlug } from "@/lib/qr/slug";
 import type { QRContent } from "@/lib/qr/types";
 import { site } from "@/lib/site";
@@ -18,19 +20,16 @@ import { createClient } from "@/lib/supabase/server";
 // Each scan is a real visit — never serve a cached page (would miss scans).
 export const dynamic = "force-dynamic";
 
-/** Record one scan for this hosted QR (bots/prefetch/owner excluded). Never throws. */
-async function recordVisit(slug: string): Promise<void> {
+/** Record one scan for a resolved, published QR (bots/prefetch/owner excluded). Never throws. */
+async function recordVisit(row: ResolvedSlug | null): Promise<void> {
   try {
-    if (!serverSupabaseConfig().configured) return;
-    const admin = createAdminClient();
-    const row = await resolveSlug(admin, slug);
     if (!row || row.status !== "published") return;
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
     const h = await headers();
-    await recordScan(admin, {
+    await recordScan(createAdminClient(), {
       qrCodeId: row.id,
       ownerId: row.user_id,
       viewerId: user?.id ?? null,
@@ -89,20 +88,28 @@ export async function generateMetadata({
 export default async function PublicQRPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const record = await fetchPublicQR(slug);
+
+  // Resolve routing/status/schedule once (service role) for the paused + schedule gates.
+  const row =
+    isValidSlug(slug) && serverSupabaseConfig().configured
+      ? await resolveSlug(createAdminClient(), slug).catch(() => null)
+      : null;
+
   if (!record) {
     // Distinguish a paused QR (polished notice) from a genuinely missing one.
-    if (isValidSlug(slug) && serverSupabaseConfig().configured) {
-      try {
-        const row = await resolveSlug(createAdminClient(), slug);
-        if (row?.status === "paused") return <PausedNotice />;
-      } catch {
-        /* fall through to 404 */
-      }
-    }
+    if (row?.status === "paused") return <PausedNotice />;
     notFound();
   }
 
-  await recordVisit(slug);
+  // Scheduling: withhold before the start / after the end (server time is authority).
+  if (row) {
+    const state = scheduleState(row.starts_at, row.ends_at, Date.now());
+    if (state === "scheduled" || state === "expired") {
+      return <ScheduleNotice state={state} fallbackUrl={row.fallback_url} />;
+    }
+  }
+
+  await recordVisit(row);
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">

@@ -19,6 +19,7 @@ Run these in the Supabase SQL Editor, in order (each is idempotent — safe to r
 1. [`supabase/SUPABASE_FULL_SETUP.sql`](supabase/SUPABASE_FULL_SETUP.sql) — core schema, RLS, storage.
 2. [`supabase/SUPABASE_AUTH_BILLING_ANALYTICS.sql`](supabase/SUPABASE_AUTH_BILLING_ANALYTICS.sql) — auth profiles, billing, scan analytics (migrations `0002`+`0003`).
 3. [`supabase/SUPABASE_PRODUCT_ADMIN_EXPANSION.sql`](supabase/SUPABASE_PRODUCT_ADMIN_EXPANSION.sql) — admin platform, presence, pause/suspend/entitlements (migration `0004`).
+4. [`supabase/SUPABASE_PRODUCT_FEATURES.sql`](supabase/SUPABASE_PRODUCT_FEATURES.sql) — scheduling, folders, tags, version history, notifications (migration `0005`).
 
 Then:
 

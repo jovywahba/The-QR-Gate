@@ -1,51 +1,54 @@
 "use client";
 
-import * as React from "react";
 import { CheckCircle2, OctagonX, TriangleAlert } from "lucide-react";
+import { qrHealth, type HealthStatus } from "@/lib/qr/health";
 import { cn } from "@/lib/utils";
 import { useQRWizard } from "../use-qr-wizard";
 
 /**
- * Readability status — a labelled heuristic (contrast, quiet zone,
- * logo/EC rules), not a scan guarantee. Errors block Continue and
- * download; the decode QA is the real proof.
+ * QR Health Score (0-100) + the readability status. A HEURISTIC, not a
+ * scan guarantee — an independent decode is the real proof. An Unsafe
+ * score still blocks Continue and download (same gate as before).
  */
-export function ReadabilityPanel() {
-  const { readability } = useQRWizard();
-  const errors = readability.issues.filter((i) => i.level === "error");
-  const warnings = readability.issues.filter((i) => i.level === "warning");
+const TONE: Record<HealthStatus, { color: string; bg: string; border: string; Icon: typeof CheckCircle2 }> = {
+  Excellent: { color: "text-[#1B8A5B]", bg: "bg-[#1B8A5B]", border: "bg-card", Icon: CheckCircle2 },
+  Good: { color: "text-[#1B8A5B]", bg: "bg-[#1B8A5B]", border: "bg-card", Icon: CheckCircle2 },
+  "Needs Attention": { color: "text-[#D9A21B]", bg: "bg-[#D9A21B]", border: "border-[#D9A21B]/50 bg-[#D9A21B]/5", Icon: TriangleAlert },
+  Unsafe: { color: "text-destructive", bg: "bg-destructive", border: "border-destructive/50 bg-destructive/5", Icon: OctagonX },
+};
 
-  const status = errors.length > 0 ? "unsafe" : warnings.length > 0 ? "attention" : "good";
+export function ReadabilityPanel() {
+  const { state, readability } = useQRWizard();
+  const health = qrHealth(state.design, { payload: state.generatedPayload });
+  const tone = TONE[health.status];
+  const Icon = tone.Icon;
 
   return (
     <section
       id="qr-readability"
       tabIndex={-1}
-      aria-label="Readability check"
-      className={cn(
-        "rounded-lg border p-4 outline-none",
-        status === "unsafe" && "border-destructive/50 bg-destructive/5",
-        status === "attention" && "border-[#D9A21B]/50 bg-[#D9A21B]/5",
-        status === "good" && "bg-card",
-      )}
+      aria-label="QR health check"
+      className={cn("rounded-lg border p-4 outline-none", tone.border)}
     >
-      <div className="flex items-center gap-2">
-        {status === "good" && <CheckCircle2 className="size-4 text-[#1B8A5B]" aria-hidden />}
-        {status === "attention" && <TriangleAlert className="size-4 text-[#D9A21B]" aria-hidden />}
-        {status === "unsafe" && <OctagonX className="size-4 text-destructive" aria-hidden />}
-        <p className="text-sm font-semibold">
-          {status === "good" && "Readability: Good"}
-          {status === "attention" && "Readability: Needs attention"}
-          {status === "unsafe" && "Readability: Unsafe"}
-        </p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Icon className={cn("size-4", tone.color)} aria-hidden />
+          <p className="text-sm font-semibold">QR Health: {health.status}</p>
+        </div>
+        <span className={cn("font-mono text-lg font-medium tabular-nums", tone.color)} aria-label={`Health score ${health.score} out of 100`}>
+          {health.score}
+          <span className="text-xs text-muted-foreground">/100</span>
+        </span>
       </div>
 
-      <p className="mt-1 text-xs text-muted-foreground">
-        {status === "good"
-          ? "Good contrast and safe settings. Still test with a phone before printing."
-          : "A heuristic check — fix the items below, then test with a phone."}
-      </p>
+      {/* Score bar */}
+      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted" role="img" aria-label={`Health score ${health.score}`}>
+        <div className={cn("h-full rounded-full transition-all", tone.bg)} style={{ width: `${health.score}%` }} />
+      </div>
 
+      <p className="mt-2 text-xs text-muted-foreground">{health.disclaimer}</p>
+
+      {/* Issues (errors block download; warnings inform) */}
       {readability.issues.length > 0 && (
         <ul className="mt-3 space-y-1.5">
           {readability.issues.map((issue) => (
@@ -58,6 +61,18 @@ export function ReadabilityPanel() {
               <span className={issue.level === "error" ? "text-destructive" : "text-foreground"}>
                 {issue.message}
               </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Actionable guidance when there's room to improve but nothing broken */}
+      {readability.issues.length === 0 && health.guidance.length > 0 && (
+        <ul className="mt-3 space-y-1.5">
+          {health.guidance.map((g) => (
+            <li key={g} className="flex items-start gap-2 text-sm text-muted-foreground">
+              <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-[#D9A21B]" aria-hidden />
+              {g}
             </li>
           ))}
         </ul>

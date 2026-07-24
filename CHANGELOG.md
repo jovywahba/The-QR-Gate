@@ -11,6 +11,17 @@ Format: `YYYY-MM-DD · [design vX.Y | template] what changed · backport? (which
 - 2026-06-17 · [template] Initial scaffold built & type-checked (tsc clean): Next 15 + React 19 + Tailwind v4 + shadcn (new-york/stone/0.5rem) wired to Design System v1.0 tokens; Supabase auth (email+password) + RLS migration; Stripe trial Checkout + verified webhook + portal; Resend; marketing site (landing, pricing, alternatives/[slug], about, blog, docs, status, legal) + product shell; Vercel Analytics. `lib/site.ts` is the per-app config seam.
 
 ## App history (The QR Gate — beyond the template)
+- 2026-07-24 · **Product features (part 9).** Analytics **CSV export** (owner-scoped,
+  formula-injection-safe, no IP/identity); **UTM builder** on URL types; **QR Health
+  Score** 0–100 over the readability engine (Unsafe still blocks download); real
+  **legal pages** (`/privacy`, `/terms`) flagged for legal review; **scheduling**
+  (start/end/timezone/fallback + server-time enforcement on `/q`+`/r` + Schedule
+  dialog); **version-history** snapshots on publish; **first-scan celebration**
+  (owner notification + subtle dashboard toast); **folders/tags** schema. New SQL
+  `0005_product_features.sql` (+ consolidated) — degrades gracefully until applied.
+  Pure utils unit-tested. tsc/lint clean; 269 tests pass; build green. Deferred:
+  folders/tags UI, version restore UI, password pages, custom slugs, bulk CSV,
+  weekly reports, AI assistant, SEO articles, comparison pages, status health endpoint.
 - 2026-07-24 · **Admin platform + moderation primitives.** Secure `/admin` (DB-enforced
   roles super_admin/admin/support/analyst via `admin_memberships`; centralized guard that
   404s non-admins; every privileged RPC re-checks the role). Real Overview (metrics +

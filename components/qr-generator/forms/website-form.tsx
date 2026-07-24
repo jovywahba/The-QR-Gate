@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { normalizeUrl } from "@/lib/qr/payloads";
 import { useQRWizard } from "../use-qr-wizard";
 import { Field, fieldAria, fieldId, useFocusFirstInvalid, useTouched } from "./form-utils";
+import { UtmBuilder } from "./utm-builder";
 
 const FIELD_ORDER = ["url", "title", "description"] as const;
 
@@ -46,6 +47,8 @@ export function WebsiteForm() {
           onBlur={() => touch("url")}
         />
       </Field>
+
+      <UtmBuilder url={data.url} onUrlChange={(url) => set({ url })} />
 
       <Field
         id={fieldId("website", "title")}

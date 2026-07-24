@@ -12,6 +12,52 @@ import { createClient } from "@/lib/supabase/server";
 export type QRActionState = { error?: string };
 export type QRDuplicateState = { error?: string; newId?: string };
 
+/**
+ * Set (or clear) a hosted/tracked QR's schedule. Instants arrive as ISO
+ * (UTC) computed from the user's local input; enforcement compares them to
+ * SERVER time in /q and /r. Only hosted/redirect QRs can be scheduled —
+ * native codes never reach our server after download.
+ */
+export async function setQrSchedule(
+  qrCodeId: string,
+  opts: { startsAt: string | null; endsAt: string | null; timezone: string | null; fallbackUrl: string | null },
+): Promise<QRActionState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in first." };
+
+  const startMs = opts.startsAt ? Date.parse(opts.startsAt) : null;
+  const endMs = opts.endsAt ? Date.parse(opts.endsAt) : null;
+  if ((opts.startsAt && Number.isNaN(startMs!)) || (opts.endsAt && Number.isNaN(endMs!))) {
+    return { error: "Those dates aren't valid." };
+  }
+  if (startMs !== null && endMs !== null && endMs <= startMs) {
+    return { error: "The end must be after the start." };
+  }
+  const fallback = opts.fallbackUrl && /^https?:\/\//i.test(opts.fallbackUrl.trim())
+    ? opts.fallbackUrl.trim()
+    : null;
+
+  const { data, error } = await supabase
+    .from("qr_codes")
+    .update({
+      starts_at: opts.startsAt || null,
+      ends_at: opts.endsAt || null,
+      timezone: opts.timezone || null,
+      fallback_url: fallback,
+    })
+    .eq("id", qrCodeId)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) {
+    return { error: "Couldn't save the schedule. Apply the latest database migration if this persists." };
+  }
+  revalidateLists();
+  return {};
+}
+
 function revalidateLists() {
   revalidatePath("/dashboard/qr-codes");
   revalidatePath("/dashboard");

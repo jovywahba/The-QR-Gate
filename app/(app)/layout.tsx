@@ -4,6 +4,7 @@ import { ShieldOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AppMobileTopbar } from "@/components/app/app-mobile-topbar";
 import { AppSidebar } from "@/components/app/app-sidebar";
+import { FirstScanCelebration } from "@/components/app/first-scan-celebration";
 import { PresenceHeartbeat } from "@/components/app/presence-heartbeat";
 import { site } from "@/lib/site";
 
@@ -41,6 +42,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen">
       <PresenceHeartbeat />
+      <FirstScanCelebration />
       <AppSidebar account={account} />
       <div className="flex min-w-0 flex-1 flex-col">
         <AppMobileTopbar account={account} />

@@ -11,6 +11,16 @@ Format: `YYYY-MM-DD · [design vX.Y | template] what changed · backport? (which
 - 2026-06-17 · [template] Initial scaffold built & type-checked (tsc clean): Next 15 + React 19 + Tailwind v4 + shadcn (new-york/stone/0.5rem) wired to Design System v1.0 tokens; Supabase auth (email+password) + RLS migration; Stripe trial Checkout + verified webhook + portal; Resend; marketing site (landing, pricing, alternatives/[slug], about, blog, docs, status, legal) + product shell; Vercel Analytics. `lib/site.ts` is the per-app config seam.
 
 ## App history (The QR Gate — beyond the template)
+- 2026-07-24 · **Product features (part 10) + live verification.** Migrations 0004+0005
+  applied to prod and **live-verified (48/49 checks)** — full admin permission matrix
+  enforced by the DB. Built: **Folders/Tags** (owner-scoped CRUD actions + Organize
+  dialog + folder/tag filter chips on My QR Codes; cross-user RLS verified live);
+  **Version history** UI (`/dashboard/qr-codes/[id]/versions`) with Restore-as-unpublished
+  (loads a snapshot into the editor; live page untouched until republish); **public
+  status + `/api/health`** machine-readable endpoint (real probes: app/DB/public-QR/
+  storage/auth/email/stripe, safe states, 503 when unavailable). Only remaining admin
+  step: the owner's super_admin bootstrap row (one SQL statement). tsc/lint clean;
+  269 tests pass; build green.
 - 2026-07-24 · **Product features (part 9).** Analytics **CSV export** (owner-scoped,
   formula-injection-safe, no IP/identity); **UTM builder** on URL types; **QR Health
   Score** 0–100 over the readability engine (Unsafe still blocks download); real

@@ -12,6 +12,8 @@ import {
   CopyPlus,
   Download,
   ExternalLink,
+  FolderInput,
+  History,
   MoreHorizontal,
   Pause,
   Pencil,
@@ -38,6 +40,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { archiveQr, duplicateQr, pauseQr, restoreQr, unpauseQr } from "./actions";
+import { OrganizeDialog } from "./organize-dialog";
 import { ScheduleDialog } from "./schedule-dialog";
 
 export function QRRowActions({
@@ -59,6 +62,7 @@ export function QRRowActions({
   const [pending, startTransition] = React.useTransition();
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [scheduleOpen, setScheduleOpen] = React.useState(false);
+  const [organizeOpen, setOrganizeOpen] = React.useState(false);
 
   const run = (action: () => Promise<{ error?: string }>, success: string) =>
     startTransition(async () => {
@@ -116,6 +120,12 @@ export function QRRowActions({
               Download
             </Link>
           </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href={`/dashboard/qr-codes/${qrCodeId}/versions`}>
+              <History />
+              Version history
+            </Link>
+          </DropdownMenuItem>
           {publicUrl && (
             <DropdownMenuItem asChild>
               <a href={publicUrl} target="_blank" rel="noreferrer">
@@ -138,6 +148,15 @@ export function QRRowActions({
           <DropdownMenuItem onSelect={() => duplicate()}>
             <CopyPlus />
             Duplicate
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={(e) => {
+              e.preventDefault();
+              setOrganizeOpen(true);
+            }}
+          >
+            <FolderInput />
+            Organize
           </DropdownMenuItem>
           {status === "published" && (
             <DropdownMenuItem onSelect={() => run(() => pauseQr(qrCodeId), "QR code paused.")}>
@@ -207,6 +226,7 @@ export function QRRowActions({
       {trackable && (
         <ScheduleDialog open={scheduleOpen} onOpenChange={setScheduleOpen} qrCodeId={qrCodeId} />
       )}
+      <OrganizeDialog open={organizeOpen} onOpenChange={setOrganizeOpen} qrCodeId={qrCodeId} />
     </div>
   );
 }

@@ -21,17 +21,24 @@
 |-----------|------|------------------|
 | `0000`–`0002` | Core schema, auth, billing, analytics, RLS | ✅ applied |
 | `0003_dashboard_analytics.sql` | unique visitors, daily activity, OS breakdown, recent feed | ✅ applied (confirmed live — dashboard shows real numbers, not the fallback) |
-| `0004_admin_expansion.sql` | admin platform, presence, pause, suspension, entitlements | ⏳ **NOT applied yet — run it** |
-| `0005_product_features.sql` | scheduling, folders, tags, version history, notifications | ⏳ **NOT applied yet — run it** |
+| `0004_admin_expansion.sql` | admin platform, presence, pause, suspension, entitlements | ✅ **applied** (live-verified 2026-07-24: 48/49 checks; full permission matrix enforced) |
+| `0005_product_features.sql` | scheduling, folders, tags, version history, notifications | ✅ **applied** (live-verified 2026-07-24) |
 
-> ⚠️ **DB action required for the admin panel + pause/suspend features:** paste
-> `supabase/SUPABASE_PRODUCT_ADMIN_EXPANSION.sql` (identical to migration `0004`)
-> into the Supabase SQL Editor, then **bootstrap the first admin** (instructions
-> are in the file header — insert your `auth.users` UUID into `admin_memberships`
-> as `super_admin`). Until `0004` runs, the app keeps working normally; `/admin`
-> shows a "run the migration" notice and Pause/Duplicate on a QR fail gracefully.
-> I have the service-role key (REST) but **no DDL path** (no DB password / linked
-> CLI), so I cannot apply DDL myself — this step is yours.
+> ✅ **Migrations 0004 + 0005 are applied and live-verified** (48/49 checks; the
+> whole admin authorization matrix — normal/analyst/support/admin/super_admin —
+> is enforced by the database).
+>
+> ⏳ **One step left for `/admin`:** the owner's account must be bootstrapped as
+> super_admin (currently `admin_memberships` is empty). Run this ONE statement in
+> the SQL Editor (resolves the UUID from the email, idempotent):
+>
+> ```sql
+> insert into public.admin_memberships (user_id, role, is_active)
+> select id, 'super_admin', true from auth.users where email = 'jovywahba@gmail.com'
+> on conflict (user_id) do update set role = 'super_admin', is_active = true;
+> ```
+>
+> Until then `/admin` correctly 404s for everyone (guard fails closed).
 
 ## Pricing (record the claim — keep it honest)
 

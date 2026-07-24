@@ -72,13 +72,16 @@ function destinationSummary(row: Row): string {
 export default async function QRCodesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; sort?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; sort?: string; q?: string; folder?: string; tag?: string }>;
 }) {
   const params = await searchParams;
   const filter: Filter = FILTERS.includes(params.status as Filter) ? (params.status as Filter) : "all";
   const sort: Sort = SORTS.includes(params.sort as Sort) ? (params.sort as Sort) : "newest";
   const q = (params.q ?? "").trim();
   const qLower = q.toLowerCase();
+  const UUID = /^[0-9a-f-]{36}$/i;
+  const folder = params.folder && UUID.test(params.folder) ? params.folder : null;
+  const tag = params.tag && UUID.test(params.tag) ? params.tag : null;
 
   const config = serverSupabaseConfig();
   if (!config.configured) {
@@ -103,10 +106,26 @@ export default async function QRCodesPage({
 
   const plan = await getPlanStatus(supabase);
 
+  // Folders + tags for the filter bar (owner-scoped; empty if 0005 isn't applied).
+  const [{ data: foldersData }, { data: tagsData }] = await Promise.all([
+    supabase.from("qr_folders").select("id, name").order("name"),
+    supabase.from("qr_tags").select("id, name").order("name"),
+  ]);
+  const folders = (foldersData ?? []) as { id: string; name: string }[];
+  const tags = (tagsData ?? []) as { id: string; name: string }[];
+
+  // Tag filter → the set of QR ids carrying that tag.
+  let tagQrIds: Set<string> | null = null;
+  if (tag) {
+    const { data: links } = await supabase.from("qr_code_tags").select("qr_code_id").eq("tag_id", tag);
+    tagQrIds = new Set((links ?? []).map((l) => l.qr_code_id as string));
+  }
+
   let query = supabase
     .from("qr_codes")
     .select("id, name, type, status, slug, tracking_mode, destination_url, created_at, updated_at");
   if (filter !== "all") query = query.eq("status", filter);
+  if (folder) query = query.eq("folder_id", folder);
   const { data } = await query;
   const rows = (data ?? []) as Row[];
 
@@ -130,6 +149,7 @@ export default async function QRCodesPage({
       summary: summaries.get(r.id) ?? { scans: 0, unique: 0, last: null },
     }))
     .filter((r) => {
+      if (tagQrIds && !tagQrIds.has(r.id)) return false;
       if (!qLower) return true;
       return (
         (r.name ?? "").toLowerCase().includes(qLower) ||
@@ -156,9 +176,13 @@ export default async function QRCodesPage({
     const status = patch.status ?? (filter === "all" ? undefined : filter);
     const s = patch.sort ?? (sort === "newest" ? undefined : sort);
     const search = patch.q ?? (q || undefined);
+    const fld = "folder" in patch ? patch.folder : (folder ?? undefined);
+    const tg = "tag" in patch ? patch.tag : (tag ?? undefined);
     if (status) sp.set("status", status);
     if (s) sp.set("sort", s);
     if (search) sp.set("q", search);
+    if (fld) sp.set("folder", fld);
+    if (tg) sp.set("tag", tg);
     const qs = sp.toString();
     return qs ? `/dashboard/qr-codes?${qs}` : "/dashboard/qr-codes";
   };
@@ -196,6 +220,8 @@ export default async function QRCodesPage({
         <form method="get" className="relative max-w-sm">
           {filter !== "all" && <input type="hidden" name="status" value={filter} />}
           {sort !== "newest" && <input type="hidden" name="sort" value={sort} />}
+          {folder && <input type="hidden" name="folder" value={folder} />}
+          {tag && <input type="hidden" name="tag" value={tag} />}
           <Search
             className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden
@@ -233,6 +259,38 @@ export default async function QRCodesPage({
             ))}
           </div>
         </div>
+
+        {/* Folder + tag filters (use the Organize action on a row to file/tag) */}
+        {(folders.length > 0 || tags.length > 0) && (
+          <div className="flex flex-col gap-2 rounded-lg border bg-card p-3">
+            {folders.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter by folder">
+                <span className="mr-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Folders</span>
+                <Button variant={folder ? "ghost" : "secondary"} size="sm" asChild>
+                  <Link href={withQuery({ folder: undefined })}>All</Link>
+                </Button>
+                {folders.map((f) => (
+                  <Button key={f.id} variant={folder === f.id ? "secondary" : "ghost"} size="sm" asChild>
+                    <Link href={withQuery({ folder: f.id })}>{f.name}</Link>
+                  </Button>
+                ))}
+              </div>
+            )}
+            {tags.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter by tag">
+                <span className="mr-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Tags</span>
+                <Button variant={tag ? "ghost" : "secondary"} size="sm" asChild>
+                  <Link href={withQuery({ tag: undefined })}>All</Link>
+                </Button>
+                {tags.map((t) => (
+                  <Button key={t.id} variant={tag === t.id ? "secondary" : "ghost"} size="sm" asChild>
+                    <Link href={withQuery({ tag: t.id })}>#{t.name}</Link>
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {enriched.length === 0 ? (
           <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed bg-muted/40 p-12 text-center">

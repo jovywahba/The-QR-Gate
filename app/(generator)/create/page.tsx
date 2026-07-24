@@ -25,6 +25,7 @@ function parseStep(raw: string | undefined, type: QRType | null): WizardStep {
 async function loadSavedRecord(
   supabase: Awaited<ReturnType<typeof createClient>>,
   id: string,
+  versionId?: string,
 ): Promise<{ record: SavedQRRecord; type: QRType } | null> {
   const { data: row } = await supabase
     .from("qr_codes")
@@ -33,16 +34,35 @@ async function loadSavedRecord(
     .maybeSingle();
   if (!row || !isQRType(row.type)) return null;
 
-  const content = (row.content ?? null) as QRContent | null;
+  let content = (row.content ?? null) as QRContent | null;
+  let design: unknown = row.design;
+  let published = row.status === "published";
+
+  // Restoring a version loads its content/design into the editor as UNPUBLISHED
+  // changes — the live row/page is untouched until the user reviews + publishes.
+  if (versionId && /^[0-9a-f-]{36}$/i.test(versionId)) {
+    const { data: ver } = await supabase
+      .from("qr_versions")
+      .select("content, design")
+      .eq("id", versionId)
+      .eq("qr_code_id", id)
+      .maybeSingle();
+    if (ver) {
+      content = (ver.content ?? null) as QRContent | null;
+      design = ver.design;
+      published = false;
+    }
+  }
+
   return {
     type: row.type,
     record: {
       qrCodeId: row.id,
       content: content?.type === row.type ? content : null,
-      design: row.design,
+      design,
       slug: row.slug,
       publicUrl: row.destination_url,
-      published: row.status === "published",
+      published,
       trackingMode: (row.tracking_mode as string | null) ?? undefined,
     },
   };
@@ -51,7 +71,7 @@ async function loadSavedRecord(
 export default async function CreatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; step?: string; id?: string; new?: string }>;
+  searchParams: Promise<{ type?: string; step?: string; id?: string; new?: string; version?: string }>;
 }) {
   const params = await searchParams;
 
@@ -74,7 +94,7 @@ export default async function CreatePage({
 
     let loaded: Awaited<ReturnType<typeof loadSavedRecord>> = null;
     try {
-      loaded = await loadSavedRecord(supabase, params.id);
+      loaded = await loadSavedRecord(supabase, params.id, params.version);
     } catch {
       loaded = null;
     }

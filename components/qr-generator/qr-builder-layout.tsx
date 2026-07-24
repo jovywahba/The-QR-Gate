@@ -7,6 +7,7 @@ import { Logo } from "@/components/brand/logo";
 import { AccountNav } from "@/components/marketing/account-nav";
 import { Button } from "@/components/ui/button";
 import type { QRType, WizardStep } from "@/lib/qr/types";
+import { cn } from "@/lib/utils";
 import { HoverPreviewProvider } from "./hover-preview";
 import { QRMobilePreviewSheet } from "./qr-mobile-preview-sheet";
 import { QRPreviewPanel } from "./qr-preview-panel";
@@ -35,13 +36,21 @@ function FocusStepHeading() {
 }
 
 function BuilderShell() {
+  const { state } = useQRWizard();
+  // On Step 3 (design), pin the preview so the QR stays in view and the
+  // user watches it update while scrolling the long list of controls.
+  // Other steps keep the preview in normal flow (it scrolls with the page).
+  const pinPreview = state.step === 3;
+
   return (
     <div className="flex min-h-dvh flex-col bg-background">
       <FocusStepHeading />
       <header className="sticky top-0 z-40 border-b bg-card">
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <Logo />
-          <QRStepper className="hidden md:block" />
+          {/* Full stepper only where there's room; a compact one sits below
+              it otherwise, so the header never overflows on smaller desktops. */}
+          <QRStepper className="hidden xl:block" />
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="sm" asChild>
               <Link href="/docs">
@@ -53,7 +62,7 @@ function BuilderShell() {
             <AccountNav />
           </div>
         </div>
-        <div className="border-t px-4 py-2 md:hidden">
+        <div className="border-t px-4 py-2 xl:hidden">
           <QRStepper compact />
         </div>
       </header>
@@ -64,11 +73,11 @@ function BuilderShell() {
             <QRStepContent />
             <WizardActions />
           </div>
-          <aside className="hidden w-[360px] shrink-0 lg:block" aria-label="Live preview">
-            {/* The preview scrolls with the page (normal flow) — not pinned
-                to the top — so the taller iPhone frame moves with you and you
-                can see all of it as you scroll. */}
-            <div className="rounded-xl border bg-card p-4">
+          <aside
+            className={cn("hidden w-[360px] shrink-0 lg:block", pinPreview && "lg:self-stretch")}
+            aria-label="Live preview"
+          >
+            <div className={cn("rounded-xl border bg-card p-4", pinPreview && "lg:sticky lg:top-24")}>
               <QRPreviewPanel autoSwitch />
             </div>
           </aside>

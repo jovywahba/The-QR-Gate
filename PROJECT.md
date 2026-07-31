@@ -12,7 +12,7 @@
 | Incumbent | QR Code Generator PRO (Bitly, qr-code-generator.com) |
 | One-line pitch | Real, scannable QR codes — 16 types, 4 steps, half the price |
 | Owner | Jovy |
-| Stage | `4 Polish` (Parts 1–5 + admin + Stripe billing; live-verified) |
+| Stage | `4 Polish` — see the **Production Truth Audit** below for the verified per-feature status |
 | Live URL | https://www.theqrgate.com |
 
 > 💳 **Stripe env var names the code REQUIRES** (set these exact names in Vercel):
@@ -23,7 +23,67 @@
 > `/api/health` → `payments` should read **operational** (it's `degraded` if the secret
 > is set but the price env is missing/misnamed).
 
-### Migration status (live-verified 2026-07-24 via `node scripts/verify-supabase.mjs` → 35/35)
+## Production Truth Audit — current state (2026-08-01)
+
+> Authoritative current-state matrix, produced from a code+DB audit (not from
+> older Markdown). Historical dated entries in `CHANGELOG.md` are kept as-is;
+> **this section is the source of truth for "what is real right now."**
+> Statuses: **LIVE** = implemented + live-verified · **IMPL** = implemented, not
+> yet live-verified end-to-end · **CFG** = code complete, external configuration
+> required · **PARTIAL** = some spec features present, others absent · **NONE** =
+> not built · **STALE** = documentation was inaccurate (now corrected).
+
+**Core QR product**
+
+| Area | Status | Notes |
+|------|--------|-------|
+| 16 QR types · 4-step builder · registry SoT | LIVE | verified in browser + tests |
+| Step-3 design preview (incl. hosted design-preview payload) | LIVE | decodes to `…/design-preview`; verified prod 2026-08-01 |
+| Templates · frames · PNG/SVG export (one pipeline) | LIVE | independent decode QA |
+| Public `/q/[slug]` (+ `PublicShell`) · tracked `/r/[slug]` · scan analytics | LIVE | DB operational; `/q`,`/r` record real scans |
+| 3-free-active-QR quota (`try_activate_qr` + publish trigger) | LIVE | live-verified 2026-07-24 |
+| Folders/tags UI · scheduling · version history + restore · pause · duplicate · Health Score · UTM | IMPL | present in code; not all re-verified this cycle |
+
+**Auth / billing / infra**
+
+| Area | Status | Notes |
+|------|--------|-------|
+| Supabase auth (email+password) + Google OAuth | LIVE | `/sign-in` 200; OAuth callback wired |
+| Stripe Checkout · webhook (signature-verified, idempotent) · portal | CFG | config live (`/api/health` payments=operational); **full sandbox card→webhook→DB flow NOT live-verified** (card entry out of scope for the agent) |
+| Live-mode vs test Stripe keys in prod | CFG | `payments=operational` proves keys are set; **owner must confirm they are LIVE-mode before charging real customers** |
+| Migrations 0000–0005 applied to prod | LIVE | 0004/0005 live-verified 2026-07-24 (see CHANGELOG); DB currently operational |
+| Custom domain `www.theqrgate.com` · `/api/health` · `/status` | LIVE | routes 200; storage health made honest 2026-08-01 (was hardcoded) |
+| Legal `/privacy` · `/terms` | LIVE | 200; flagged for legal review before launch |
+
+**Admin panel** (foundation is real; several spec sections are partial or absent)
+
+| Section | Status | Notes |
+|---------|--------|-------|
+| Authz core — 4 roles (super_admin/admin/support/analyst), fail-closed guard, DB re-check | LIVE | permission matrix live-verified 2026-07-24; `roles.ts` unit-tested |
+| `admin_memberships` + super_admin **bootstrap** | CFG | table is empty in prod — owner must run the 1-line bootstrap SQL below; until then `/admin` correctly 404s for all |
+| Overview (`/admin`) | PARTIAL | every metric is a real query; **no charts, no revenue, no system-health card, no failed-payments, no archived count** |
+| Users (`/admin/users`) | PARTIAL | list/detail/suspend/reactivate/reset/comp-Pro real + audited; **missing: revoke-sessions (standalone), export user data, admin notes** |
+| QR Codes (`/admin/qr-codes`) | PARTIAL | pause/unpause/archive + status filters real, no WiFi/protected leak; **missing: search, version history, copy-URL, broken-asset check, Expired/Protected filters** |
+| Subscriptions (`/admin/subscriptions`) | PARTIAL | real read-only Stripe mirror + separate comp entitlements; **missing: active-QR usage, explicit Free bucket, dedicated payment-failure state** |
+| Audit Log (`/admin/audit`) | PARTIAL | append-only, DB-enforced, atomic writes; **missing: filters, pagination, metadata display** |
+| Team (`/admin/team`) | PARTIAL | add/change-role/disable, super-admin-only; **missing: last-activity, and an explicit last-super-admin guard (governance risk — flagged)** |
+| Analytics (system-wide) | NONE | no `/admin/analytics`; per-user analytics exist but no admin-gated system-wide RPCs |
+| Reports / weekly email | NONE | no `/admin/reports`, no `scheduled_reports` table, no cron; health honestly says `not_configured` |
+| Security Center | NONE | no route; failed-logins/webhook-failures/permission-denials are **not recorded** anywhere yet |
+| Support Center | NONE | no dedicated route (support role reuses shared pages); no admin-notes feature |
+| Global Search | NONE | no permission-aware global search box |
+| System-Health admin page | NONE | only the public `/status` + `/api/health`; no admin page, no webhook-delivery/cron checks |
+
+**Audit-surfaced defects (fixed / to fix)**
+
+- ✅ **Fixed 2026-08-01:** `/api/health` storage was hardcoded `operational` — now derives from DB reachability (honest).
+- ⚠️ **To fix (Phase 2):** no explicit **last-super-admin guard** (`admin_grant_role`/team actions) — lockout risk.
+- ⚠️ **To fix (Phase 2):** `admin_log()` DB grant is gated by *any* active admin, not a specific permission (coarse); DB role re-check is role-set coarse vs the app's fine matrix.
+- ⚠️ **Declared-but-unbacked permissions** in `roles.ts`: `revoke_sessions`, `export_reports` have no implementation yet.
+
+**Enterprise expansion (spec Phases 5–16) — not built (roadmap):** password-protected QR pages, custom slugs + aliases, bulk CSV import, team workspaces, branded tracking domains, public API (v1 + keys/scopes), campaigns, conversion tracking, live scan globe, deep per-type public redesign, editor↔public component unification, 6 new QR types (Email/SMS/Event/Review/Text/Location).
+
+### Migration status (0004+0005 live-verified 2026-07-24; see CHANGELOG for the dated run)
 
 | Migration | What | Applied to prod? |
 |-----------|------|------------------|
@@ -32,9 +92,10 @@
 | `0004_admin_expansion.sql` | admin platform, presence, pause, suspension, entitlements | ✅ **applied** (live-verified 2026-07-24: 48/49 checks; full permission matrix enforced) |
 | `0005_product_features.sql` | scheduling, folders, tags, version history, notifications | ✅ **applied** (live-verified 2026-07-24) |
 
-> ✅ **Migrations 0004 + 0005 are applied and live-verified** (48/49 checks; the
-> whole admin authorization matrix — normal/analyst/support/admin/super_admin —
-> is enforced by the database).
+> ✅ **Migrations 0004 + 0005 are applied and live-verified** (48/49 checks on
+> 2026-07-24). The admin authorization matrix — the four admin roles
+> **super_admin / admin / support / analyst** (a user with no `admin_memberships`
+> row is a normal, non-admin user) — is enforced by the database.
 >
 > ⏳ **One step left for `/admin`:** the owner's account must be bootstrapped as
 > super_admin (currently `admin_memberships` is empty). Run this ONE statement in
@@ -165,7 +226,7 @@
   restore UI, password-protected pages, custom slugs + aliases, bulk CSV import,
   weekly email reports, AI Design Assistant, SEO cornerstone articles, verified
   competitor comparison pages, status-monitoring health endpoint.
-- **Admin platform (done, needs `0004` applied):** a secure `/admin` surface
+- **Admin platform (`0004`/`0005` applied; see the Production Truth Audit above for which sections are PARTIAL vs NOT built):** a secure `/admin` surface
   distinct from the user dashboard. DB-enforced roles (`super_admin`/`admin`/
   `support`/`analyst`) via `admin_memberships` + a centralized server guard
   (`lib/admin/guard.ts`) that 404s non-admins; **every privileged DB function

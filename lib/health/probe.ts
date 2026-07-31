@@ -53,7 +53,11 @@ export async function runHealth(): Promise<HealthReport> {
     checks.push({ key: "database", label: "Database", status: db });
     checks.push({ key: "public_qr", label: "Public QR lookup", status: db });
     checks.push({ key: "auth", label: "Authentication", status: db === "unavailable" ? "degraded" : "operational" });
-    checks.push({ key: "storage", label: "File storage", status: "operational" });
+    // Storage shares this app's Supabase project, so its reachability tracks the
+    // DB probe. We do NOT claim "operational" independently of a real signal
+    // (an earlier hardcoded "operational" was misleading) — if the project is
+    // unreachable, storage is too. A dedicated Storage API probe can refine this.
+    checks.push({ key: "storage", label: "File storage", status: db });
   }
 
   checks.push({ key: "email", label: "Email (Resend)", status: process.env.RESEND_API_KEY ? "operational" : "not_configured" });

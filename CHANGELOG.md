@@ -11,6 +11,21 @@ Format: `YYYY-MM-DD · [design vX.Y | template] what changed · backport? (which
 - 2026-06-17 · [template] Initial scaffold built & type-checked (tsc clean): Next 15 + React 19 + Tailwind v4 + shadcn (new-york/stone/0.5rem) wired to Design System v1.0 tokens; Supabase auth (email+password) + RLS migration; Stripe trial Checkout + verified webhook + portal; Resend; marketing site (landing, pricing, alternatives/[slug], about, blog, docs, status, legal) + product shell; Vercel Analytics. `lib/site.ts` is the per-app config seam.
 
 ## App history (The QR Gate — beyond the template)
+- 2026-08-01 · **Production truth audit + doc reconciliation (enterprise Phase 1).**
+  Ran a 9-agent code+DB audit of the whole admin panel vs the target 12-section
+  spec. Result recorded as the authoritative **Production Truth Audit** matrix in
+  `PROJECT.md` (statuses: LIVE / IMPL / CFG / PARTIAL / NONE / STALE). Key truths:
+  the 4-role authz core, `admin_memberships`, `get_admin_overview`, `admin_list_users`,
+  the append-only audit ledger, QR moderation, suspension, entitlements, presence, and
+  the Stripe-mirror subscriptions view are **real and DB-backed**; Overview/Users/QR/
+  Subscriptions/Audit/Team pages are **PARTIAL** (missing charts, revenue, revoke-sessions,
+  export, admin notes, QR search, version history, audit filters/pagination, and a
+  last-super-admin guard); Analytics/Reports/Security/Support/Global-Search/System-Health-
+  admin-page are **NOT built**. Fixed two audit-caught defects: (1) `/api/health` File
+  storage was **hardcoded `operational`** → now derives from real DB reachability;
+  (2) reconciled the contradictory verification counts and mislabeled role in the docs
+  (kept dated history, added the current-state matrix). `CLAUDE.md` now documents the
+  admin panel (previously omitted). No feature code changed beyond the health fix.
 - 2026-08-01 · **Step-3 hosted-QR preview fix + public scan shell.** Fixed the
   reported bug where hosted QR types (PDF, links, business, images, social, apps,
   coupon, upload Video/MP3, PDF/rich Menu — and any direct type with tracking on)

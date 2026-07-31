@@ -222,3 +222,15 @@ in CI **at build time, never by a user complaint.**
   persistence redacts it and its generated payload) and never logged. Drafts live in
   `sessionStorage` under `the-qr-gate:draft:v1` (old `qraft:draft:v1` drafts
   migrate on first load).
+- **Admin panel (`/admin`):** a real, DB-enforced admin surface distinct from the user
+  dashboard (its own `components/admin/admin-shell.tsx` — never the QR stepper). Four
+  roles in `lib/admin/roles.ts` (**super_admin / admin / support / analyst**; a user
+  with no `admin_memberships` row is a normal user). `lib/admin/guard.ts` `requireAdmin()`
+  fails closed (404s non-admins) AND every privileged RPC re-checks the role in the DB
+  (`_require_admin`), so the app guard is never the only gate. Privileged mutations write
+  an append-only row to `admin_audit_logs`. Built pages: Overview, Users(+detail),
+  QR Codes(+detail), Subscriptions, Audit, Team. **The current build is a foundation with
+  known gaps — see the Production Truth Audit in `PROJECT.md` for the exact PARTIAL/NONE
+  status of each section (analytics, reports, security, support, global search, charts,
+  etc.) before building.** Admin never sees WiFi passwords, protected content, card data,
+  or secrets. First admin is bootstrapped by a one-line SQL insert (see `PROJECT.md`).

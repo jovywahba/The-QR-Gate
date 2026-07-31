@@ -50,7 +50,7 @@ function StepHeading({ children, sub }: { children: React.ReactNode; sub?: strin
 }
 
 export function QRStepContent() {
-  const { state, needsPublishing, readability } = useQRWizard();
+  const { state, needsPublishing, readability, previewPayload, previewMode } = useQRWizard();
   const definition = state.selectedType ? getQRType(state.selectedType) : null;
   const stepName = WIZARD_STEPS.find((s) => s.step === state.step)!.name;
 
@@ -122,8 +122,11 @@ export function QRStepContent() {
       </StepHeading>
       <div className="mx-auto max-w-sm space-y-3">
         <FinalizePanel />
+        {/* The preview shows the design on a real QR (a safe design preview
+            for hosted types until publish); the Download button below stays
+            blocked until the real code is committed. */}
         <QRRenderer
-          payload={state.generatedPayload}
+          payload={previewPayload}
           design={state.design}
           type={state.selectedType}
           emptyHint={
@@ -132,16 +135,25 @@ export function QRStepContent() {
               : "Nothing to download yet — go back and complete the content step."
           }
         />
-        {state.generatedPayload && state.selectedType && (
+        {previewPayload && state.selectedType && (
           <div className="rounded-lg border bg-card px-3 py-2">
             <p className="font-mono text-[11px] tracking-[0.14em] text-muted-foreground uppercase">
-              {needsPublishing ? "Encoded link" : "Direct destination"}
+              {previewMode === "design-preview"
+                ? "Design preview link"
+                : needsPublishing
+                  ? "Encoded link"
+                  : "Direct destination"}
             </p>
             <p className="mt-0.5 font-mono text-xs break-all">
-              {state.generatedPayload.length > 200
-                ? `${state.generatedPayload.slice(0, 200)}…`
-                : state.generatedPayload}
+              {previewPayload.length > 200
+                ? `${previewPayload.slice(0, 200)}…`
+                : previewPayload}
             </p>
+            {previewMode === "design-preview" && (
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Placeholder link for design only — your real link is assigned when you publish.
+              </p>
+            )}
           </div>
         )}
         <DownloadPanel />

@@ -124,38 +124,67 @@ function MobilePagePreview() {
 }
 
 function QRPreviewTab() {
-  const { state, needsPublishing } = useQRWizard();
+  const { state, previewPayload, previewMode, needsPublishing, committed } = useQRWizard();
   const typeName = state.selectedType ? getQRType(state.selectedType).name : null;
+  const isDesignPreview = previewMode === "design-preview";
+  const isLiveHosted = previewMode === "live" && needsPublishing && committed;
 
   return (
     <div className="space-y-3">
+      {/* What the user is looking at: a real design preview (hosted types
+          before publish) or the live code that encodes the published link. */}
+      {isDesignPreview ? (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-accent/30 bg-accent/[0.06] px-3 py-2">
+          <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-semibold tracking-[0.14em] text-accent uppercase">
+            <span className="size-1.5 rounded-full bg-accent" /> Design preview
+          </span>
+          <span className="text-[11px] text-muted-foreground">Final link set on publish</span>
+        </div>
+      ) : isLiveHosted ? (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-[#1B8A5B]/30 bg-[#1B8A5B]/[0.06] px-3 py-2">
+          <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-semibold tracking-[0.14em] text-[#1B8A5B] uppercase">
+            <span className="size-1.5 rounded-full bg-[#1B8A5B]" /> Live QR
+          </span>
+          <span className="text-[11px] text-muted-foreground">Encodes your published link</span>
+        </div>
+      ) : null}
+
       <QRRenderer
-        payload={state.generatedPayload}
+        payload={previewPayload}
         design={state.design}
         type={state.selectedType}
         emptyHint={
           state.selectedType
-            ? needsPublishing
-              ? "This QR type lives on a hosted page — complete the form, then publish in the Download step to generate the real code."
-              : "Complete the required fields and the real QR code appears here."
+            ? "Complete the required fields and the real QR code appears here."
             : "Select a QR type to get started."
         }
       />
-      {state.generatedPayload && (
+
+      {previewMode === "live" && (
         <div className="flex items-center justify-between px-1">
           <span className="font-mono text-[11px] tracking-[0.14em] text-muted-foreground uppercase">
             {typeName}
           </span>
           <span className="font-mono text-[11px] text-muted-foreground">
-            {state.generatedPayload.length} chars
+            {previewPayload.length} chars
           </span>
         </div>
       )}
-      {state.generatedPayload && (
+
+      {isDesignPreview ? (
+        <p className="px-1 text-xs text-muted-foreground">
+          A real, scannable preview — every template, pattern, corner, gradient, logo,
+          frame, and color renders exactly as it will on your final code.{" "}
+          <span className="font-medium text-foreground">
+            Your final destination is assigned when you publish
+          </span>
+          , and this preview is replaced by your live QR. It can&apos;t be downloaded until then.
+        </p>
+      ) : previewMode === "live" ? (
         <p className="px-1 text-xs text-muted-foreground">
           Test this QR code with your phone before printing or publishing it.
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

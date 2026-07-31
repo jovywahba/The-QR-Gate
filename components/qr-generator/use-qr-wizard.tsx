@@ -6,6 +6,7 @@ import { publicSupabaseConfig } from "@/lib/qr/config";
 import { defaultContentFor, defaultDesign, initialWizardState, migrateDesign } from "@/lib/qr/defaults";
 import { buildPayload } from "@/lib/qr/payloads";
 import { clearDraft, loadDraft, saveDraft } from "@/lib/qr/persistence";
+import { resolvePreviewPayload, type QRPreviewMode } from "@/lib/qr/preview-payload";
 import { evaluateDesign, type QRReadabilityResult } from "@/lib/qr/readability";
 import { getQRType, isQRType } from "@/lib/qr/registry";
 import {
@@ -33,6 +34,8 @@ import { createClient } from "@/lib/supabase/client";
 
 const NO_VALIDATION: ContentValidation = { valid: false, fieldErrors: {} };
 
+export type { QRPreviewMode };
+
 type WizardContextValue = {
   state: QRWizardState;
   /** Zod result for the current content ({} errors when nothing to validate). */
@@ -52,6 +55,15 @@ type WizardContextValue = {
   resetDesign: () => void;
   /** Readability heuristics for the current design (errors gate Step 4 + download). */
   readability: QRReadabilityResult;
+  /**
+   * The payload RENDERED in the QR preview: the real payload for
+   * direct/native types, or a safe, decodable design-preview payload for
+   * hosted/tracked types before publish. NEVER used for download — that
+   * still requires the real committed payload.
+   */
+  previewPayload: string;
+  /** Whether the preview is showing the live code, a design preview, or nothing. */
+  previewMode: QRPreviewMode;
   startOver: () => void;
   /** Anything worth confirming before Start Over discards it? */
   isDirty: boolean;
@@ -290,6 +302,34 @@ export function QRWizardProvider({
     [state, generatedPayload],
   );
 
+  /* How the CURRENT content is encoded/tracked, and whether it needs one of
+     OUR URLs (a committed slug). Computed here — before the preview — so
+     hosted types can fall back to a safe design-preview payload. */
+  const trackingMode = React.useMemo<TrackingMode>(
+    () => (state.content ? resolveTrackingMode(state.content, state.trackingEnabled) : "direct"),
+    [state.content, state.trackingEnabled],
+  );
+
+  /** Encodes one of our URLs (hosted or tracked redirect) → needs a committed slug. */
+  const needsPublishing = React.useMemo(() => encodesServerUrl(trackingMode), [trackingMode]);
+
+  /* The payload the QR PREVIEW renders. Direct/native types show their real
+     payload immediately (it decodes to the actual destination/action). Hosted
+     and tracked-redirect types have no real URL until publish, so the preview
+     shows a safe, decodable, OWNED design-preview payload — never localhost,
+     never a guessed /q/[slug], and never downloadable. The instant publishing
+     succeeds, generatedPayload becomes the real /q/[slug] (or /r/[slug]) and
+     the preview swaps to it automatically, design preserved. */
+  const { payload: previewPayload, mode: previewMode } = React.useMemo(
+    () =>
+      resolvePreviewPayload({
+        generatedPayload,
+        hasType: !!state.selectedType,
+        needsPublishing,
+      }),
+    [generatedPayload, state.selectedType, needsPublishing],
+  );
+
   /* Persist the safe draft on every change (post-hydration only). */
   React.useEffect(() => {
     if (hydrated) saveDraft(fullState);
@@ -366,8 +406,8 @@ export function QRWizardProvider({
   );
 
   const readability = React.useMemo(
-    () => evaluateDesign(fullState.design, { hasPayload: fullState.generatedPayload.length > 0 }),
-    [fullState.design, fullState.generatedPayload],
+    () => evaluateDesign(fullState.design, { hasPayload: previewPayload.length > 0 }),
+    [fullState.design, previewPayload],
   );
 
   /**
@@ -424,14 +464,6 @@ export function QRWizardProvider({
   const registerQrCodeId = React.useCallback((qrCodeId: string) => {
     setState((prev) => (prev.qrCodeId === qrCodeId ? prev : { ...prev, qrCodeId }));
   }, []);
-
-  const trackingMode = React.useMemo<TrackingMode>(
-    () => (fullState.content ? resolveTrackingMode(fullState.content, fullState.trackingEnabled) : "direct"),
-    [fullState.content, fullState.trackingEnabled],
-  );
-
-  /** Encodes one of our URLs (hosted or tracked redirect) → needs a committed slug. */
-  const needsPublishing = React.useMemo(() => encodesServerUrl(trackingMode), [trackingMode]);
 
   const canToggleTracking = React.useMemo(
     () => (fullState.content ? canToggle(fullState.content) : false),
@@ -563,6 +595,8 @@ export function QRWizardProvider({
       patchDesign,
       resetDesign,
       readability,
+      previewPayload,
+      previewMode,
       startOver,
       isDirty,
       needsPublishing,
@@ -596,6 +630,8 @@ export function QRWizardProvider({
       patchDesign,
       resetDesign,
       readability,
+      previewPayload,
+      previewMode,
       startOver,
       isDirty,
       needsPublishing,

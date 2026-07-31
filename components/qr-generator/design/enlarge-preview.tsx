@@ -26,7 +26,8 @@ const QRRenderer = dynamic(() => import("../qr-renderer"), {
  * plus the destination and any current readability issues.
  */
 export function EnlargePreview() {
-  const { state, readability } = useQRWizard();
+  const { state, readability, previewPayload, previewMode } = useQRWizard();
+  const isDesignPreview = previewMode === "design-preview";
 
   return (
     <Dialog>
@@ -40,27 +41,29 @@ export function EnlargePreview() {
         <DialogHeader>
           <DialogTitle>QR preview</DialogTitle>
           <DialogDescription>
-            {state.generatedPayload
-              ? "The exact code you'll download — test it with your phone."
-              : "No code yet — complete the content (or publish) first."}
+            {isDesignPreview
+              ? "A real design preview — your final link is assigned when you publish."
+              : previewPayload
+                ? "The exact code you'll download — test it with your phone."
+                : "No code yet — complete the content (or publish) first."}
           </DialogDescription>
         </DialogHeader>
         <QRRenderer
-          payload={state.generatedPayload}
+          payload={previewPayload}
           design={state.design}
           type={state.selectedType}
           size={960}
           emptyHint="Nothing to encode yet."
         />
-        {state.generatedPayload && (
+        {previewPayload && (
           <div className="rounded-lg border bg-muted/40 px-3 py-2">
             <p className="font-mono text-[11px] tracking-[0.14em] text-muted-foreground uppercase">
-              Destination
+              {isDesignPreview ? "Design preview link" : "Destination"}
             </p>
             <p className="mt-0.5 font-mono text-xs break-all">
-              {state.generatedPayload.length > 160
-                ? `${state.generatedPayload.slice(0, 160)}…`
-                : state.generatedPayload}
+              {previewPayload.length > 160
+                ? `${previewPayload.slice(0, 160)}…`
+                : previewPayload}
             </p>
           </div>
         )}

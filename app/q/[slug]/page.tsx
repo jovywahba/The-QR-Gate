@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { HalfstackEndorser } from "@/components/brand/logo";
 import { PausedNotice } from "@/components/qr-public/paused-notice";
 import { PublicQRRenderer } from "@/components/qr-public/public-qr-renderer";
+import { PublicShell } from "@/components/qr-public/public-shell";
 import { ScheduleNotice } from "@/components/qr-public/schedule-notice";
 import type { PublicAssetRow } from "@/components/qr-public/resolver";
 import { recordScan, resolveSlug, type ResolvedSlug } from "@/lib/analytics/record";
@@ -112,18 +111,8 @@ export default async function PublicQRPage({ params }: { params: Promise<{ slug:
   await recordVisit(row);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
-      <main className="mx-auto w-full max-w-md flex-1 px-4 py-8">
-        <PublicQRRenderer content={record.content} assets={record.assets} />
-      </main>
-      <footer className="border-t bg-card py-4">
-        <div className="mx-auto flex w-full max-w-md flex-col items-center gap-1.5 px-4 text-center">
-          <Link href="/" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
-            Made with {site.name} — create your own QR code
-          </Link>
-          <HalfstackEndorser />
-        </div>
-      </footer>
-    </div>
+    <PublicShell>
+      <PublicQRRenderer content={record.content} assets={record.assets} />
+    </PublicShell>
   );
 }

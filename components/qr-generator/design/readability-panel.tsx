@@ -18,8 +18,8 @@ const TONE: Record<HealthStatus, { color: string; bg: string; border: string; Ic
 };
 
 export function ReadabilityPanel() {
-  const { state, readability } = useQRWizard();
-  const health = qrHealth(state.design, { payload: state.generatedPayload });
+  const { state, readability, previewPayload } = useQRWizard();
+  const health = qrHealth(state.design, { payload: previewPayload });
   const tone = TONE[health.status];
   const Icon = tone.Icon;
 

@@ -50,6 +50,26 @@ Direct QR types (Website, WhatsApp, WiFi, vCard, Facebook, Instagram, and
 URL-mode Video/MP3/Menu) work with no backend at all; hosted types publish
 through Supabase.
 
+### QR destination model — direct vs hosted vs tracked
+
+| Mode | Types | What the QR encodes | Public page? |
+|------|-------|--------------------|--------------|
+| **Direct** | Website, Facebook, Instagram, URL-mode Video/MP3/Menu | the external URL itself | no — opens the destination |
+| **Native** | WiFi, vCard, WhatsApp | a `WIFI:` / vCard / `wa.me` payload | no — triggers the native action |
+| **Hosted** | PDF, List of Links, Business, Images, Social, Apps, Coupon, upload-mode Video/MP3, PDF/rich Menu | `https://…/q/[slug]` | yes — a The QR Gate scan page (`components/qr-public/*`, wrapped in `PublicShell`) |
+| **Tracked** | any direct type with scan tracking on | `https://…/r/[slug]` → 302 | no (redirects), scans counted |
+
+**Design preview (Step 3):** the QR editor always renders a real, scannable
+QR while you design — direct/native types use their real payload; hosted and
+tracked types (which have no `/q|/r/[slug]` until publish) render a safe
+**design-preview payload** (`https://www.theqrgate.com/design-preview`, an
+owned URL — never localhost, never a guessed slug). It is render-only: the
+**Download stays blocked for hosted types until publish**, and the moment
+publishing succeeds the code swaps to the real `/q/[slug]` (design unchanged).
+See `lib/qr/preview-payload.ts`. One composition pipeline
+(`lib/qr/composition.ts`) drives every preview and every PNG/SVG export, so
+what you see is exactly what downloads.
+
 ## Deploy
 
 The repository root is the Next.js app — Vercel detects it automatically.

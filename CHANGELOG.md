@@ -11,6 +11,29 @@ Format: `YYYY-MM-DD · [design vX.Y | template] what changed · backport? (which
 - 2026-06-17 · [template] Initial scaffold built & type-checked (tsc clean): Next 15 + React 19 + Tailwind v4 + shadcn (new-york/stone/0.5rem) wired to Design System v1.0 tokens; Supabase auth (email+password) + RLS migration; Stripe trial Checkout + verified webhook + portal; Resend; marketing site (landing, pricing, alternatives/[slug], about, blog, docs, status, legal) + product shell; Vercel Analytics. `lib/site.ts` is the per-app config seam.
 
 ## App history (The QR Gate — beyond the template)
+- 2026-08-01 · **Step-3 hosted-QR preview fix + public scan shell.** Fixed the
+  reported bug where hosted QR types (PDF, links, business, images, social, apps,
+  coupon, upload Video/MP3, PDF/rich Menu — and any direct type with tracking on)
+  showed an EMPTY QR during Step-3 design ("This QR type lives on a hosted page…")
+  because their real `/q|/r/[slug]` doesn't exist until publish. Root cause:
+  `derivePayload` returns "" for `encodesServerUrl` modes pre-publish and the
+  preview rendered that empty payload. Fix: new `lib/qr/preview-payload.ts` — a
+  safe, decodable, **owned** design-preview payload (`…/design-preview`, never
+  localhost, never a guessed slug), resolved by the pure `resolvePreviewPayload()`.
+  The wizard now exposes `previewPayload`/`previewMode`; Step-3 preview, enlarge
+  dialog, mobile sheet, Step-4 preview, and the health score all render it through
+  the ONE composition pipeline. **Download stays blocked** for hosted types until
+  publish (it still uses the real committed payload); after publish the preview
+  swaps to the live `/q/[slug]` ("Live QR" badge) with the design unchanged. New
+  honest `/design-preview` landing page is the payload's target. Public scan pages:
+  new shared `PublicShell` (premium mobile-first frame — brand header, rounded card
+  + soft shadow, safe-area, endorser) now wraps `/q/[slug]` and the paused/scheduled
+  notices, unifying 3 duplicated scaffolds. Browser-verified live: real QR renders
+  in Step-3 for PDF, updates on design change, **independently decodes to
+  `https://www.theqrgate.com/design-preview`**; no 320/768 overflow. +13 tests
+  (295 total). tsc/lint clean; build green. Deferred (honest): full editor↔public
+  component unification (still two trees), per-type public redesigns, and
+  password-protected pages (unbuilt — no schema).
 - 2026-07-24 · **Stripe billing hardening + domain audit.** Custom domain
   `www.theqrgate.com`: `site.ts` normalizes `NEXT_PUBLIC_SITE_URL` (strips trailing
   slash, guards malformed `//host`, real-domain fallback); stale demo URL fixed.

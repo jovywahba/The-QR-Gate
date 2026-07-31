@@ -204,6 +204,20 @@ in CI **at build time, never by a user complaint.**
 - **QR engine seam:** everything QR lives in `lib/qr/` — `registry.ts` is the single
   source of truth for the 16 types (names, descriptions, icons, categories, defaults).
   Never duplicate type metadata in components.
+- **Destination & preview model (direct / hosted / tracked):** direct/native types
+  (Website, Facebook, Instagram, URL-mode Video/MP3/Menu, WiFi, vCard, WhatsApp)
+  encode their real payload immediately. Hosted types (PDF, links, business, images,
+  social, apps, coupon, upload Video/MP3, PDF/rich Menu) encode `…/q/[slug]`, created
+  on publish; direct types with tracking on encode `…/r/[slug]`. **Step-3 always shows
+  a real QR:** hosted/tracked types (no real slug pre-publish) render a safe,
+  owned **design-preview payload** (`lib/qr/preview-payload.ts` → `…/design-preview`,
+  never localhost, never a guessed `/q/[slug]`), labelled "Design preview". It is
+  render-only — **hosted Download stays blocked until publish** (it uses the real
+  committed payload), then the code swaps to the live `/q/[slug]` ("Live QR"), design
+  unchanged. ONE composition pipeline (`composition.ts`) drives every preview + PNG/SVG
+  export. Public scan pages live in `components/qr-public/*` and share `PublicShell`.
+  (Not yet unified: the editor's `qr-preview/screens.tsx` and the public `*-public-page`
+  set are still two trees; password-protected pages are unbuilt.)
 - **Security notes:** the WiFi password is never persisted (memory only — draft
   persistence redacts it and its generated payload) and never logged. Drafts live in
   `sessionStorage` under `the-qr-gate:draft:v1` (old `qraft:draft:v1` drafts

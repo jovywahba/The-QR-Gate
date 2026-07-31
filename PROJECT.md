@@ -140,6 +140,15 @@
 ---
 
 ## App notes
+- **Step-3 hosted-QR preview + public scan shell (2026-08-01):** the design editor
+  always shows a real, scannable QR — hosted/tracked types render a safe owned
+  **design-preview payload** (`…/design-preview`, never localhost/fake slug) via
+  `lib/qr/preview-payload.ts`; hosted Download stays blocked until publish, then the
+  code swaps to the live `/q/[slug]`. New `/design-preview` page + shared `PublicShell`
+  (premium mobile-first frame) now wrap `/q/[slug]` + notices. Browser-verified (real
+  QR renders + updates + decodes to `…/design-preview`; no 320/768 overflow). +13
+  tests. **Still deferred:** editor↔public component unification (two trees), per-type
+  public page redesigns, password-protected pages (unbuilt — no schema).
 - **Product features (Part 9, needs `0005` applied):** **Analytics CSV export**
   (owner-scoped, formula-injection-safe, no IP/identity — no migration needed);
   **UTM builder** on URL types (merges into the encoded URL; tested); **QR Health

@@ -25,6 +25,18 @@ export async function startCheckout(formData?: FormData) {
 
   const returnTo = safeRedirectPath(formData?.get("returnTo"), "/dashboard/billing?status=success");
 
+  // Never mint a second active subscription: if the user already has an
+  // active/trialing Stripe sub, send them to Manage Billing instead. (This is
+  // the real Stripe state mirrored in our DB, not a browser-supplied value.)
+  const { data: activeSub } = await supabase
+    .from("subscriptions")
+    .select("id")
+    .eq("user_id", user.id)
+    .in("status", ["active", "trialing"])
+    .limit(1)
+    .maybeSingle();
+  if (activeSub) redirect("/dashboard/billing?status=already");
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("stripe_customer_id")
@@ -34,11 +46,16 @@ export async function startCheckout(formData?: FormData) {
 
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
+    // The price is ALWAYS the server-configured Pro price — a browser can
+    // never choose what it's charged for.
     line_items: [{ price, quantity: 1 }],
     success_url: `${site.url}${returnTo}`,
     cancel_url: `${site.url}/dashboard/billing?status=cancelled`,
     client_reference_id: user.id,
-    metadata: { user_id: user.id },
+    metadata: { user_id: user.id, plan: "pro" },
+    // Carry the Supabase id onto the subscription itself, so webhook linking
+    // works even if subscription.created arrives before the customer is linked.
+    subscription_data: { metadata: { user_id: user.id, plan: "pro" } },
     customer: customerId,
     customer_email: customerId ? undefined : (user.email ?? undefined),
     allow_promotion_codes: true,

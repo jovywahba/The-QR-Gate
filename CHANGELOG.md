@@ -11,6 +11,19 @@ Format: `YYYY-MM-DD · [design vX.Y | template] what changed · backport? (which
 - 2026-06-17 · [template] Initial scaffold built & type-checked (tsc clean): Next 15 + React 19 + Tailwind v4 + shadcn (new-york/stone/0.5rem) wired to Design System v1.0 tokens; Supabase auth (email+password) + RLS migration; Stripe trial Checkout + verified webhook + portal; Resend; marketing site (landing, pricing, alternatives/[slug], about, blog, docs, status, legal) + product shell; Vercel Analytics. `lib/site.ts` is the per-app config seam.
 
 ## App history (The QR Gate — beyond the template)
+- 2026-07-24 · **Stripe billing hardening + domain audit.** Custom domain
+  `www.theqrgate.com`: `site.ts` normalizes `NEXT_PUBLIC_SITE_URL` (strips trailing
+  slash, guards malformed `//host`, real-domain fallback); stale demo URL fixed.
+  Checkout: blocks a duplicate active/trialing sub (→ Manage Billing), stamps
+  `user_id` on the subscription metadata (race-proof webhook linking), server-only
+  price (`STRIPE_PRICE_PRO_MONTHLY`). Webhook: `current_period_*` read from the sub
+  OR its item (API-version robust) + metadata-based user resolution that links the
+  customer. Billing UI: past_due → "Update payment method", complimentary Pro shown
+  separately (no Manage-billing dead-end), `already` banner. Health `/api/health`
+  payments = operational only when checkout is truly ready (secret + price),
+  "degraded" if the price env is missing/misnamed. Pure config + webhook helpers
+  extracted and unit-tested. No new migration (billing schema already applied);
+  reference `SUPABASE_STRIPE_BILLING.sql` added. 282 tests pass.
 - 2026-07-24 · **Product features (part 10) + live verification.** Migrations 0004+0005
   applied to prod and **live-verified (48/49 checks)** — full admin permission matrix
   enforced by the DB. Built: **Folders/Tags** (owner-scoped CRUD actions + Organize

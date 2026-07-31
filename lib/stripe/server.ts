@@ -9,28 +9,12 @@ import Stripe from "stripe";
  * it. The client is created lazily inside request handlers — never at
  * module scope — so builds and deployments succeed with no Stripe env.
  * apiVersion is omitted so it tracks the account default.
+ *
+ * The pure config predicates live in ./config (unit-tested) and are
+ * re-exported here for the existing "@/lib/stripe/server" imports.
  */
 
-/** A value that's present and not a placeholder stub. */
-function isRealValue(value: string | undefined): boolean {
-  return Boolean(value) && !value!.includes("placeholder");
-}
-
-/** True only when a usable secret key is present (placeholders don't count). */
-export function isStripeConfigured(): boolean {
-  return isRealValue(process.env.STRIPE_SECRET_KEY);
-}
-
-/** The Pro plan's Price id (server-only — never trust a client-supplied price). */
-export function proPriceId(): string | undefined {
-  const id = process.env.STRIPE_PRICE_PRO_MONTHLY;
-  return isRealValue(id) ? id : undefined;
-}
-
-/** Checkout is possible only with both a secret key AND the Pro price configured. */
-export function isBillingConfigured(): boolean {
-  return isStripeConfigured() && Boolean(proPriceId());
-}
+export { isRealValue, isStripeConfigured, proPriceId, isBillingConfigured } from "./config";
 
 let client: Stripe | null = null;
 

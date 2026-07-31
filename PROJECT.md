@@ -12,8 +12,16 @@
 | Incumbent | QR Code Generator PRO (Bitly, qr-code-generator.com) |
 | One-line pitch | Real, scannable QR codes — 16 types, 4 steps, half the price |
 | Owner | Jovy |
-| Stage | `4 Polish` (Parts 1–5 + account dashboard + admin platform; live-verified) |
-| Live URL | https://the-qr-gate.vercel.app |
+| Stage | `4 Polish` (Parts 1–5 + admin + Stripe billing; live-verified) |
+| Live URL | https://www.theqrgate.com |
+
+> 💳 **Stripe env var names the code REQUIRES** (set these exact names in Vercel):
+> `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, **`STRIPE_PRICE_PRO_MONTHLY`** (the
+> $10/mo Price id — this exact name, not `STRIPE_PRICE_ID`/`NEXT_PUBLIC_STRIPE_PRICE_ID`).
+> `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` is **not** required (checkout is Stripe-hosted).
+> Webhook endpoint: `https://www.theqrgate.com/api/stripe/webhook`. Verify readiness at
+> `/api/health` → `payments` should read **operational** (it's `degraded` if the secret
+> is set but the price env is missing/misnamed).
 
 ### Migration status (live-verified 2026-07-24 via `node scripts/verify-supabase.mjs` → 35/35)
 

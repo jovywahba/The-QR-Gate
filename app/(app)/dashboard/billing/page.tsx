@@ -14,12 +14,21 @@ export default async function BillingPage({
 }) {
   const { status } = await searchParams;
   const supabase = await createClient();
-  const plan = await getPlanStatus(supabase);
+  const [plan, { data: { user } }] = await Promise.all([getPlanStatus(supabase), supabase.auth.getUser()]);
+  const { data: profile } = user
+    ? await supabase.from("profiles").select("stripe_customer_id").eq("id", user.id).maybeSingle()
+    : { data: null };
+  const hasCustomer = Boolean(profile?.stripe_customer_id);
 
   return (
     <>
       <AppTopbar title="Billing" />
-      <BillingView plan={plan} billingReady={isBillingConfigured()} statusParam={status ?? null} />
+      <BillingView
+        plan={plan}
+        billingReady={isBillingConfigured()}
+        hasCustomer={hasCustomer}
+        statusParam={status ?? null}
+      />
     </>
   );
 }

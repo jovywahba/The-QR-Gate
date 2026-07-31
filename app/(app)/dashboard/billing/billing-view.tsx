@@ -28,6 +28,9 @@ function StatusBanner({ statusParam, plan }: { statusParam: string | null; plan:
   if (statusParam === "success") {
     tone = "ok";
     message = "Payment received. Your subscription updates the moment Stripe confirms it.";
+  } else if (statusParam === "already") {
+    tone = "ok";
+    message = "You already have an active subscription. Manage it below.";
   } else if (statusParam === "cancelled") {
     tone = "warn";
     message = "Checkout was canceled — you have not been charged.";
@@ -59,14 +62,19 @@ function StatusBanner({ statusParam, plan }: { statusParam: string | null; plan:
 export function BillingView({
   plan,
   billingReady,
+  hasCustomer,
   statusParam,
 }: {
   plan: PlanStatus;
   billingReady: boolean;
+  hasCustomer: boolean;
   statusParam: string | null;
 }) {
   const usedPct = Math.min(Math.round((plan.activeCount / FREE_ACTIVE_LIMIT) * 100), 100);
   const lapsed = !plan.isUnlimited && plan.status && plan.status !== "canceled";
+  const stripePro = plan.status === "active" || plan.status === "trialing";
+  // Pro via an admin-granted complimentary entitlement, with no Stripe subscription.
+  const compOnly = plan.complimentary && !stripePro;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
@@ -80,22 +88,28 @@ export function BillingView({
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-semibold">{PRO_PLAN_NAME}</h2>
                 <Badge variant="accent" className="font-normal">
-                  {statusLabel(plan.status)}
+                  {compOnly ? "Complimentary" : statusLabel(plan.status)}
                 </Badge>
               </div>
-              <p className="font-mono text-sm text-muted-foreground">${PRO_PRICE_USD}.00 / month</p>
+              <p className="font-mono text-sm text-muted-foreground">
+                {compOnly ? "Granted by an admin" : `$${PRO_PRICE_USD}.00 / month`}
+              </p>
             </div>
-            <form action={openPortal}>
-              <Button type="submit" size="sm">
-                <CreditCard aria-hidden />
-                Manage billing
-              </Button>
-            </form>
+            {hasCustomer && !compOnly ? (
+              <form action={openPortal}>
+                <Button type="submit" size="sm">
+                  <CreditCard aria-hidden />
+                  Manage billing
+                </Button>
+              </form>
+            ) : null}
           </div>
           <p className="text-sm text-muted-foreground">
-            {plan.cancelAtPeriodEnd
-              ? `Cancels on ${formatDate(plan.currentPeriodEnd)} — you keep Pro until then.`
-              : `Renews on ${formatDate(plan.currentPeriodEnd)}.`}
+            {compOnly
+              ? "Complimentary Pro — no billing. Contact support with any questions."
+              : plan.cancelAtPeriodEnd
+                ? `Cancels on ${formatDate(plan.currentPeriodEnd)} — you keep Pro until then.`
+                : `Renews on ${formatDate(plan.currentPeriodEnd)}.`}
           </p>
           <ul className="flex flex-col gap-2 text-sm">
             {PRO_FEATURES.map((f) => (
@@ -156,12 +170,32 @@ export function BillingView({
               ))}
             </ul>
             {billingReady ? (
-              <form action={startCheckout}>
-                <input type="hidden" name="returnTo" value="/dashboard/billing?status=success" />
-                <Button type="submit" className="w-full">
-                  {lapsed ? "Reactivate Pro" : "Upgrade to Pro"} — ${PRO_PRICE_USD}/mo
-                </Button>
-              </form>
+              plan.status === "past_due" && hasCustomer ? (
+                /* Existing subscription, payment failed → update the card via the portal. */
+                <form action={openPortal}>
+                  <Button type="submit" className="w-full">
+                    <CreditCard aria-hidden />
+                    Update payment method
+                  </Button>
+                </form>
+              ) : (
+                <div className="space-y-2">
+                  <form action={startCheckout}>
+                    <input type="hidden" name="returnTo" value="/dashboard/billing?status=success" />
+                    <Button type="submit" className="w-full">
+                      {lapsed ? "Reactivate Pro" : "Upgrade to Pro"} — ${PRO_PRICE_USD}/mo
+                    </Button>
+                  </form>
+                  {hasCustomer && (
+                    <form action={openPortal}>
+                      <Button type="submit" variant="outline" className="w-full">
+                        <CreditCard aria-hidden />
+                        Manage billing
+                      </Button>
+                    </form>
+                  )}
+                </div>
+              )
             ) : (
               <div className="rounded-lg border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground">
                 Online checkout isn&apos;t configured on this deployment yet. Set the Stripe keys and the

@@ -6,6 +6,7 @@ import {
   sendSubscriptionCanceledEmail,
 } from "@/lib/emails";
 import { getStripe } from "@/lib/stripe/server";
+import { iso, subPeriod } from "@/lib/stripe/webhook-utils";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -26,8 +27,22 @@ async function emailForUser(supabase: Admin, userId: string): Promise<string | n
   return data?.email ?? null;
 }
 
-function iso(seconds: number | null | undefined): string | null {
-  return typeof seconds === "number" ? new Date(seconds * 1000).toISOString() : null;
+/**
+ * Resolve the Supabase user for a subscription: prefer the stored customer
+ * mapping, then fall back to the user_id we stamped on the subscription
+ * metadata (and link the customer for next time). Closes the ordering race
+ * where subscription.created can arrive before checkout links the customer.
+ */
+async function resolveUser(supabase: Admin, sub: Stripe.Subscription): Promise<string | null> {
+  const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+  const mapped = await userIdForCustomer(supabase, customerId);
+  if (mapped) return mapped;
+  const meta = sub.metadata?.user_id;
+  if (meta && /^[0-9a-f-]{36}$/i.test(meta)) {
+    await supabase.from("profiles").update({ stripe_customer_id: customerId }).eq("id", meta);
+    return meta;
+  }
+  return null;
 }
 
 /** Mirror a Stripe subscription into public.subscriptions (service role). Throws on write failure. */
@@ -42,8 +57,8 @@ async function upsertSubscription(supabase: Admin, userId: string, sub: Stripe.S
     stripe_price_id: priceId,
     stripe_customer_id: customerId,
     stripe_subscription_id: sub.id,
-    current_period_start: iso(sub.current_period_start),
-    current_period_end: iso(sub.current_period_end),
+    current_period_start: iso(subPeriod(sub, "current_period_start")),
+    current_period_end: iso(subPeriod(sub, "current_period_end")),
     cancel_at_period_end: sub.cancel_at_period_end,
   });
   // Surface write failures so the handler 500s and Stripe retries (the event
@@ -114,15 +129,13 @@ export async function POST(req: NextRequest) {
       case "customer.subscription.created":
       case "customer.subscription.updated": {
         const sub = event.data.object as Stripe.Subscription;
-        const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
-        const userId = await userIdForCustomer(supabase, customerId);
+        const userId = await resolveUser(supabase, sub);
         if (userId) await upsertSubscription(supabase, userId, sub);
         break;
       }
       case "customer.subscription.deleted": {
         const sub = event.data.object as Stripe.Subscription;
-        const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
-        const userId = await userIdForCustomer(supabase, customerId);
+        const userId = await resolveUser(supabase, sub);
         if (userId) {
           await upsertSubscription(supabase, userId, sub); // status → canceled
           const email = await emailForUser(supabase, userId);

@@ -1,5 +1,6 @@
 import "server-only";
 import { serverSupabaseConfig } from "@/lib/qr/config";
+import { isBillingConfigured, isStripeConfigured } from "@/lib/stripe/config";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -56,7 +57,14 @@ export async function runHealth(): Promise<HealthReport> {
   }
 
   checks.push({ key: "email", label: "Email (Resend)", status: process.env.RESEND_API_KEY ? "operational" : "not_configured" });
-  checks.push({ key: "payments", label: "Payments (Stripe)", status: process.env.STRIPE_SECRET_KEY ? "operational" : "not_configured" });
+  // Operational only when checkout is actually ready (secret key AND the Pro
+  // price under STRIPE_PRICE_PRO_MONTHLY). "degraded" = key set but price
+  // missing/misnamed — a clear signal without leaking any value.
+  checks.push({
+    key: "payments",
+    label: "Payments (Stripe)",
+    status: isBillingConfigured() ? "operational" : isStripeConfigured() ? "degraded" : "not_configured",
+  });
   // Weekly scheduled reports aren't wired up yet — honest "not configured".
   checks.push({ key: "scheduled_reports", label: "Scheduled reports", status: "not_configured" });
 

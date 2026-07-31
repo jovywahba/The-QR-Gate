@@ -62,4 +62,29 @@ describe("plan / quota logic", () => {
     expect(statusLabel("past_due")).toBe("Past due");
     expect(statusLabel(null)).toBe("Free");
   });
+
+  it("surfaces complimentary Pro separately from Stripe status", () => {
+    // Effective plan is unlimited via a comp entitlement, with NO Stripe sub.
+    const comp = parsePlanStatus({ plan: "pro", is_unlimited: true, complimentary: true, status: null, active_count: 9 });
+    expect(comp.isUnlimited).toBe(true);
+    expect(comp.complimentary).toBe(true);
+    expect(comp.status).toBeNull(); // not a Stripe subscription
+
+    // A real Stripe Pro is NOT complimentary.
+    const stripePro = parsePlanStatus({ plan: "pro", is_unlimited: true, complimentary: false, status: "active" });
+    expect(stripePro.complimentary).toBe(false);
+    expect(stripePro.status).toBe("active");
+
+    // Free default carries complimentary=false.
+    expect(parsePlanStatus({ plan: "free", is_unlimited: false }).complimentary).toBe(false);
+    expect(parsePlanStatus(null).complimentary).toBe(false);
+  });
+
+  it("a lapsed (past_due/canceled) Stripe status is not unlimited", () => {
+    const pastDue = parsePlanStatus({ plan: "free", is_unlimited: false, status: "past_due", active_count: 5 });
+    expect(pastDue.isUnlimited).toBe(false);
+    expect(pastDue.status).toBe("past_due");
+    // Over the free limit while lapsed → cannot create a new active QR.
+    expect(pastDue.canCreate).toBe(false);
+  });
 });

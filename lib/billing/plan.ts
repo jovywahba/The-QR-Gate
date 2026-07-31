@@ -32,6 +32,8 @@ export type PlanStatus = {
   /** Raw Stripe status when subscribed (past_due, canceled, …), else null. */
   status: string | null;
   isUnlimited: boolean;
+  /** True when Pro comes from an admin-granted complimentary entitlement (not Stripe). */
+  complimentary: boolean;
   activeCount: number;
   /** null when unlimited (Pro). */
   limit: number | null;
@@ -46,6 +48,7 @@ export const FREE_PLAN_FALLBACK: PlanStatus = {
   plan: "free",
   status: null,
   isUnlimited: false,
+  complimentary: false,
   activeCount: 0,
   limit: FREE_ACTIVE_LIMIT,
   canCreate: true,
@@ -66,6 +69,7 @@ export function parsePlanStatus(raw: unknown): PlanStatus {
     plan,
     status: typeof r.status === "string" ? r.status : null,
     isUnlimited,
+    complimentary: Boolean(r.complimentary),
     activeCount,
     limit: isUnlimited ? null : typeof r.limit === "number" ? r.limit : FREE_ACTIVE_LIMIT,
     canCreate: typeof r.can_create === "boolean" ? r.can_create : quotaAllows(isUnlimited, activeCount),

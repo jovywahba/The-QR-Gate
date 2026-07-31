@@ -12,7 +12,7 @@ import type { AssetRef, QRContent, QRType } from "./types";
  * ───────────────────────────────────────────────────────────────
  */
 
-const SITE = "https://the-qr-gate.vercel.app";
+const SITE = "https://www.theqrgate.com";
 
 function fileAsset(fileName: string, previewUrl: string, mimeType: string, fileSize: number): AssetRef {
   return { assetId: `demo-${fileName}`, fileName, fileSize, mimeType, previewUrl };

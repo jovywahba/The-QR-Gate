@@ -31,11 +31,22 @@ export type Alternative = {
   rows: ComparisonRow[];
 };
 
+/**
+ * Canonical absolute origin, normalized from NEXT_PUBLIC_SITE_URL: trailing
+ * slashes stripped, and a malformed value (empty, protocol-relative "//host",
+ * or one carrying a path) falls back to the production domain — so we never
+ * build broken URLs like "//www.theqrgate.com".
+ */
+function resolveSiteUrl(): string {
+  const raw = (process.env.NEXT_PUBLIC_SITE_URL ?? "").trim().replace(/\/+$/, "");
+  return /^https?:\/\/[a-z0-9.-]+(:\d{2,5})?$/i.test(raw) ? raw : "https://www.theqrgate.com";
+}
+
 export const site = {
   // ── Brand ────────────────────────────────────────────────────
   name: "The QR Gate",
-  domain: "example.com", // TODO: domain not chosen yet
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://example.com",
+  domain: "www.theqrgate.com",
+  url: resolveSiteUrl(),
   tagline: "Create, customize, and share QR codes.",
   description:
     "Create QR codes for websites, WhatsApp, WiFi, contact cards and more — pick a type, add your content, style it, download. Half the price of the big QR platforms.",

@@ -15,7 +15,9 @@
     "stripe:listen": "stripe listen --forward-to localhost:3000/api/stripe/webhook",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify:supabase": "node scripts/verify-supabase.mjs"
+    "test:e2e": "playwright test",
+    "verify:supabase": "node scripts/verify-supabase.mjs",
+    "verify:security": "node scripts/verify-launch-security.mjs"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.1",

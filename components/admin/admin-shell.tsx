@@ -5,8 +5,9 @@ import Link from "next/link";
 import { ArrowLeft, Menu, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { ROLE_LABELS, type AdminRole } from "@/lib/admin/roles";
+import { hasPermission, ROLE_LABELS, type AdminRole } from "@/lib/admin/roles";
 import { AdminNav } from "./admin-nav";
+import { AdminGlobalSearch } from "./admin-search";
 
 /**
  * The admin application shell — deliberately DISTINCT from the user
@@ -30,6 +31,11 @@ export function AdminShell({
       {/* Desktop sidebar */}
       <aside className="hidden w-60 flex-none flex-col border-r border-sidebar-border bg-sidebar p-3.5 md:flex">
         <Brand role={role} />
+        {hasPermission(role, "global_search") && (
+          <div className="mt-4">
+            <AdminGlobalSearch />
+          </div>
+        )}
         <div className="mt-4">
           <AdminNav role={role} />
         </div>
@@ -61,7 +67,8 @@ export function AdminShell({
                   <Brand role={role} />
                 </SheetTitle>
               </SheetHeader>
-              <div className="px-3.5">
+              <div className="flex flex-col gap-4 px-3.5">
+                {hasPermission(role, "global_search") && <AdminGlobalSearch />}
                 <AdminNav role={role} onNavigate={() => setOpen(false)} />
               </div>
             </SheetContent>

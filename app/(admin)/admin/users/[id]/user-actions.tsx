@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { KeyRound, ShieldOff, ShieldCheck, Sparkles, XCircle } from "lucide-react";
+import { Download, KeyRound, LogOut, ShieldOff, ShieldCheck, Sparkles, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -10,15 +10,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import type { UserNote } from "@/lib/admin/data";
 import {
-  adminGrantComp, adminReactivateUser, adminRevokeComp, adminSendPasswordReset,
-  adminSuspendUser, type ActionResult,
+  adminAddNote, adminExportUserData, adminGrantComp, adminReactivateUser, adminRevokeComp,
+  adminRevokeSessions, adminSendPasswordReset, adminSuspendUser, type ActionResult,
 } from "./actions";
 
 type Perms = {
   suspend: boolean;
   reset: boolean;
   entitlements: boolean;
+  revokeSessions: boolean;
+  exportData: boolean;
 };
 
 export function UserActions({
@@ -40,6 +44,24 @@ export function UserActions({
       else toast.success(r.message ?? "Done.");
     });
 
+  const doExport = () =>
+    start(async () => {
+      const r = await adminExportUserData(userId);
+      if (r.error || !r.json) {
+        toast.error(r.error ?? "Couldn't export.");
+        return;
+      }
+      const url = URL.createObjectURL(new Blob([r.json], { type: "application/json" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = r.filename ?? `user-${userId}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success("User data exported.");
+    });
+
   return (
     <div className="flex flex-wrap gap-2">
       {perms.reset && (
@@ -51,6 +73,29 @@ export function UserActions({
         >
           <KeyRound aria-hidden />
           Send password reset
+        </Button>
+      )}
+
+      {perms.revokeSessions && !suspended && (
+        <ReasonDialog
+          trigger={
+            <Button variant="outline" size="sm" disabled={pending}>
+              <LogOut aria-hidden />
+              Revoke sessions
+            </Button>
+          }
+          title="Revoke this user's sessions?"
+          description="Forces the user to sign in again on all devices. The account is NOT suspended — they can log back in immediately."
+          confirmLabel="Revoke sessions"
+          reasonRequired={false}
+          onConfirm={(reason) => run(() => adminRevokeSessions(userId, reason))}
+        />
+      )}
+
+      {perms.exportData && (
+        <Button variant="outline" size="sm" disabled={pending} onClick={doExport}>
+          <Download aria-hidden />
+          Export data
         </Button>
       )}
 
@@ -117,6 +162,71 @@ export function UserActions({
             onConfirm={(reason, expiry) => run(() => adminGrantComp(userId, reason, expiry))}
           />
         ))}
+    </div>
+  );
+}
+
+/** Internal admin/support notes — list + add form. Notes are never shown to the user. */
+export function UserNotes({
+  userId,
+  notes,
+  available,
+  canAdd,
+}: {
+  userId: string;
+  notes: UserNote[];
+  available: boolean;
+  canAdd: boolean;
+}) {
+  const [body, setBody] = React.useState("");
+  const [pending, start] = React.useTransition();
+
+  const add = () =>
+    start(async () => {
+      const r = await adminAddNote(userId, body);
+      if (r.error) {
+        toast.error(r.error);
+        return;
+      }
+      setBody("");
+      toast.success("Note added.");
+      // Server action revalidated the path; refresh the RSC tree to show it.
+      window.location.reload();
+    });
+
+  return (
+    <div>
+      {canAdd && (
+        <div className="mb-4 flex flex-col gap-2">
+          <Textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder="Add an internal note (visible to admins/support only)…"
+            rows={2}
+          />
+          <div className="flex justify-end">
+            <Button size="sm" disabled={pending || !body.trim()} onClick={add}>
+              Add note
+            </Button>
+          </div>
+        </div>
+      )}
+      {!available ? (
+        <p className="text-sm text-muted-foreground">Notes need migration 0006 applied.</p>
+      ) : notes.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No notes yet.</p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {notes.map((n) => (
+            <li key={n.id} className="rounded-lg border bg-background p-3 text-sm">
+              <p className="whitespace-pre-wrap">{n.body}</p>
+              <p className="mt-1.5 font-mono text-[11px] text-muted-foreground">
+                {n.authorEmail ?? "admin"} · {new Date(n.createdAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

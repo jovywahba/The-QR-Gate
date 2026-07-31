@@ -2,6 +2,7 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { hasPermission, isAdminRole, type AdminRole, type Permission } from "./roles";
+import { recordSecurityEvent } from "./security";
 
 /**
  * ───────────────────────────────────────────────────────────────
@@ -52,6 +53,16 @@ export async function requireAdmin(permission: Permission = "view_admin"): Promi
 export async function assertAdmin(permission: Permission): Promise<AdminContext> {
   const ctx = await getAdminContext();
   if (!ctx || !hasPermission(ctx.role, permission)) {
+    // Record the denied privileged action as a real security signal. Only when
+    // a session exists (an authenticated caller lacking the permission), so we
+    // don't spam on plain anonymous probes. Best-effort; never blocks.
+    void recordSecurityEvent({
+      eventType: "admin_permission_denied",
+      severity: "warning",
+      actorUserId: ctx?.userId ?? null,
+      subject: permission,
+      metadata: { role: ctx?.role ?? null },
+    });
     throw new AdminForbiddenError();
   }
   return ctx;

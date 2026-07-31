@@ -9,13 +9,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { listUserNotes } from "@/lib/admin/data";
 import { hasPermission } from "@/lib/admin/roles";
 import { requireAdmin } from "@/lib/admin/guard";
 import { getQRType, isQRType } from "@/lib/qr/registry";
 import { statusBadge } from "@/lib/qr/status-display";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
-import { UserActions } from "./user-actions";
+import { UserActions, UserNotes } from "./user-actions";
 
 export const metadata: Metadata = { title: "User" };
 
@@ -56,6 +58,12 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
       .eq("is_bot", false);
     totalScans = count ?? 0;
   }
+
+  // Internal notes (session client — the RPC re-checks the admin role).
+  const canNotes = hasPermission(ctx.role, "manage_notes");
+  const notes = canNotes
+    ? await listUserNotes(await createClient(), id)
+    : { available: false, rows: [] };
 
   const compActive = Boolean(comp && (!comp.expires_at || new Date(comp.expires_at) > new Date()));
   const subActive = sub?.status === "active" || sub?.status === "trialing";
@@ -107,6 +115,8 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
               suspend: hasPermission(ctx.role, "suspend_users"),
               reset: hasPermission(ctx.role, "reset_password"),
               entitlements: hasPermission(ctx.role, "manage_entitlements"),
+              revokeSessions: hasPermission(ctx.role, "revoke_sessions"),
+              exportData: hasPermission(ctx.role, "export_user_data"),
             }}
           />
         </div>
@@ -173,6 +183,21 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
             )}
           </Card>
         </div>
+
+        {/* Internal notes */}
+        {canNotes && (
+          <Card>
+            <div className="border-b p-5">
+              <h3 className="text-sm font-semibold">Internal notes</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Visible to admins &amp; support only — never shown to the user.
+              </p>
+            </div>
+            <div className="p-5">
+              <UserNotes userId={profile.id} notes={notes.rows} available={notes.available} canAdd={canNotes} />
+            </div>
+          </Card>
+        )}
 
         {/* QR codes */}
         <Card>

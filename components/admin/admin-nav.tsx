@@ -3,10 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Activity,
+  BarChart3,
   ClipboardList,
   CreditCard,
+  FileText,
   LayoutDashboard,
+  LifeBuoy,
   QrCode,
+  ShieldAlert,
   ShieldCheck,
   Users,
   type LucideIcon,
@@ -22,7 +27,12 @@ const ITEMS: Item[] = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard, perm: "view_overview", exact: true },
   { href: "/admin/users", label: "Users", icon: Users, perm: "view_users" },
   { href: "/admin/qr-codes", label: "QR Codes", icon: QrCode, perm: "view_qr" },
+  { href: "/admin/analytics", label: "Analytics", icon: BarChart3, perm: "view_analytics" },
   { href: "/admin/subscriptions", label: "Subscriptions", icon: CreditCard, perm: "view_subscriptions" },
+  { href: "/admin/reports", label: "Reports", icon: FileText, perm: "view_reports" },
+  { href: "/admin/support", label: "Support", icon: LifeBuoy, perm: "view_support" },
+  { href: "/admin/security", label: "Security", icon: ShieldAlert, perm: "view_security" },
+  { href: "/admin/system-health", label: "System Health", icon: Activity, perm: "view_system_health" },
   { href: "/admin/audit", label: "Audit Log", icon: ClipboardList, perm: "view_audit" },
   { href: "/admin/team", label: "Admin Team", icon: ShieldCheck, perm: "manage_admins" },
 ];

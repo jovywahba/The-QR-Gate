@@ -11,6 +11,33 @@ Format: `YYYY-MM-DD · [design vX.Y | template] what changed · backport? (which
 - 2026-06-17 · [template] Initial scaffold built & type-checked (tsc clean): Next 15 + React 19 + Tailwind v4 + shadcn (new-york/stone/0.5rem) wired to Design System v1.0 tokens; Supabase auth (email+password) + RLS migration; Stripe trial Checkout + verified webhook + portal; Resend; marketing site (landing, pricing, alternatives/[slug], about, blog, docs, status, legal) + product shell; Vercel Analytics. `lib/site.ts` is the per-app config seam.
 
 ## App history (The QR Gate — beyond the template)
+- 2026-08-01 · **Admin panel completion (enterprise Phase 2).** Completed the
+  existing admin platform (no second system). New migration
+  `0006_admin_completion.sql` (+ consolidated `SUPABASE_ADMIN_COMPLETION.sql`,
+  identical body): `admin_notes`, `admin_export_jobs`, `security_events` (all
+  RLS select-only, service-role/definer writes); a hardened `admin_grant_role`
+  with an explicit, advisory-locked **last-super-admin guard** (can't demote/
+  remove/disable the final super admin); extended `get_admin_overview`
+  (archived/trialing/past-due/comp/unique-visitors); and new admin-gated RPCs
+  `admin_analytics`, `admin_qr_list`/`admin_qr_detail`, `admin_subscriptions_list`,
+  `admin_audit_query`, `admin_global_search`, `admin_add_note`/`admin_list_notes`,
+  `admin_record_export`, `admin_security_events`. New pages **/admin/analytics,
+  /admin/reports, /admin/system-health, /admin/security, /admin/support** +
+  permission-aware **global search** in the shell + nav entries (each gated by
+  permission). Overview gained real metric cards + 30-day scan/registration
+  charts; revenue shown honestly as "Not configured". New user privileged
+  actions: **revoke sessions**, **export user data** (safe JSON, no secrets/
+  content), **internal notes** — all audited, reason+permission gated. New
+  permissions in `roles.ts` (view_reports/security/system_health/support,
+  global_search, manage_notes, revoke_sessions, export_user_data) with the
+  role matrix extended + unit-tested; pure last-super-admin helper +
+  `security.ts` recorder wired into `assertAdmin` denials. `/api/health` storage
+  fix from Phase 1 retained. **DB-dependent pages degrade honestly to "Code
+  complete — migration required" until 0006 is applied** (never fake data).
+  tsc/lint clean, **333 tests** (+38), build green. **Not live-verified** (needs
+  0006 applied + the super_admin bootstrap). Deferred to the next increment:
+  Playwright admin E2E (not installed; needs a live super_admin session) and the
+  executable launch-security script (needs the service-role key + applied 0006).
 - 2026-08-01 · **Production truth audit + doc reconciliation (enterprise Phase 1).**
   Ran a 9-agent code+DB audit of the whole admin panel vs the target 12-section
   spec. Result recorded as the authoritative **Production Truth Audit** matrix in

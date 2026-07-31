@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { AdminTopbar } from "@/components/admin/admin-shell";
+import { AdminSection, TrendBars } from "@/components/admin/admin-ui";
 import { StatCard } from "@/components/app/stat-card";
-import { getAdminOverview } from "@/lib/admin/data";
+import { getAdminAnalytics, getAdminOverview } from "@/lib/admin/data";
 import { requireAdmin } from "@/lib/admin/guard";
 import { createClient } from "@/lib/supabase/server";
 
@@ -13,6 +15,10 @@ export default async function AdminOverviewPage() {
   await requireAdmin("view_overview");
   const supabase = await createClient();
   const o = await getAdminOverview(supabase);
+  // 30-day trends for the overview charts (real; degrades to empty if 0006 unapplied).
+  const now = new Date();
+  const from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const trends = await getAdminAnalytics(supabase, from, now);
 
   if (!o.available) {
     return (
@@ -65,12 +71,36 @@ export default async function AdminOverviewPage() {
             <StatCard label="Total QR Codes" value={o.totalQr.toLocaleString()} />
             <StatCard label="Active QR Codes" value={o.activeQr.toLocaleString()} />
             <StatCard label="Paused QR Codes" value={o.pausedQr.toLocaleString()} />
+            <StatCard label="Archived QR Codes" value={o.archivedQr.toLocaleString()} />
             <StatCard label="Total Scans" value={o.totalScans.toLocaleString()} />
             <StatCard label="Scans Today" value={o.scansToday.toLocaleString()} />
-            <StatCard label="Scans · 30 Days" value={o.scans30d.toLocaleString()} />
+            <StatCard label="Unique Visitors · 30 Days" value={o.uniqueVisitors30d.toLocaleString()} />
             <StatCard label="Bot Scans · 30 Days" value={o.botScans30d.toLocaleString()} />
           </div>
         </section>
+
+        {/* Subscriptions */}
+        <section>
+          <h2 className="mb-3 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+            Subscriptions
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Pro Accounts" value={o.proAccounts.toLocaleString()} />
+            <StatCard label="Trialing" value={o.trialingAccounts.toLocaleString()} />
+            <StatCard label="Past Due" value={o.pastDueAccounts.toLocaleString()} />
+            <StatCard label="Complimentary Pro" value={o.compAccounts.toLocaleString()} />
+          </div>
+        </section>
+
+        {/* Real 30-day trends */}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <AdminSection title="Scans · last 30 days" description="Human scans only (bots excluded).">
+            <TrendBars data={trends.scansByDay} />
+          </AdminSection>
+          <AdminSection title="New users · last 30 days">
+            <TrendBars data={trends.registrationsByDay} />
+          </AdminSection>
+        </div>
 
         <div className="grid gap-4 lg:grid-cols-3">
           {/* Presence by route */}
@@ -103,11 +133,19 @@ export default async function AdminOverviewPage() {
               <h2 className="text-sm font-semibold">Not tracked yet</h2>
             </div>
             <div className="flex flex-col gap-3 p-5 text-sm">
+              <Unavailable label="Revenue" value="Not configured" />
               <Unavailable label="Storage Usage" />
-              <Unavailable label="Failed Publishes" />
+              <Unavailable label="API Requests" />
               <p className="text-xs text-muted-foreground">
-                These need dedicated instrumentation before they can be shown truthfully.
+                Revenue reporting is not configured (Stripe payout/MRR aggregation isn&apos;t wired
+                up); the rest need dedicated instrumentation before they can be shown truthfully.
               </p>
+              <Link
+                href="/admin/analytics"
+                className="text-xs font-medium text-accent hover:underline"
+              >
+                Full analytics →
+              </Link>
             </div>
           </div>
         </div>
@@ -116,11 +154,11 @@ export default async function AdminOverviewPage() {
   );
 }
 
-function Unavailable({ label }: { label: string }) {
+function Unavailable({ label, value = "Not tracked" }: { label: string; value?: string }) {
   return (
     <div className="flex items-center justify-between">
       <span>{label}</span>
-      <span className="font-mono text-xs text-muted-foreground">Not tracked</span>
+      <span className="font-mono text-xs text-muted-foreground">{value}</span>
     </div>
   );
 }

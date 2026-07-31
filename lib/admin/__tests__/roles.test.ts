@@ -21,21 +21,32 @@ const EXPECT: Record<AdminRole, Partial<Record<Permission, boolean>>> = {
   super_admin: {
     view_admin: true, manage_admins: true, suspend_users: true, moderate_qr: true,
     manage_entitlements: true, reset_password: true, view_audit: true, export_reports: true,
+    view_reports: true, view_security: true, view_system_health: true, view_support: true,
+    global_search: true, manage_notes: true, revoke_sessions: true, export_user_data: true,
   },
   admin: {
     view_admin: true, manage_admins: false, suspend_users: true, moderate_qr: true,
     manage_entitlements: true, reset_password: true, view_audit: true, export_reports: true,
+    view_reports: true, view_security: true, view_system_health: true, view_support: true,
+    global_search: true, manage_notes: true, revoke_sessions: true, export_user_data: true,
   },
   support: {
     view_admin: true, view_users: true, view_user_detail: true, view_qr: true,
     reset_password: true, suspend_users: false, moderate_qr: false, manage_entitlements: false,
     manage_admins: false, view_analytics: false, view_audit: false,
+    // Support gets the read-only support surface, notes, and search — nothing else new.
+    view_support: true, manage_notes: true, global_search: true,
+    view_reports: false, view_security: false, view_system_health: false,
+    revoke_sessions: false, export_user_data: false,
   },
   analyst: {
     view_admin: true, view_overview: true, view_analytics: true,
     view_users: false, view_user_detail: false, view_qr: false, reset_password: false,
     suspend_users: false, moderate_qr: false, manage_entitlements: false, manage_admins: false,
     view_audit: false, export_reports: false,
+    // Analyst gets read-only system health, but no private/search/mutation.
+    view_system_health: true, view_support: false, view_security: false, view_reports: false,
+    global_search: false, manage_notes: false, revoke_sessions: false, export_user_data: false,
   },
 };
 

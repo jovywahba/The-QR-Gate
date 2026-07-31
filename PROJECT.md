@@ -74,12 +74,25 @@
 | Global Search | NONE | no permission-aware global search box |
 | System-Health admin page | NONE | only the public `/status` + `/api/health`; no admin page, no webhook-delivery/cron checks |
 
+> **Phase 2 update (2026-08-01) — admin completion shipped (code):** the matrix
+> above reflects the *pre-Phase-2* state. Phase 2 (commit shipped this session)
+> **built** all the gaps: the 5 new pages (Analytics/Reports/System-Health/
+> Security/Support), permission-aware global search, Overview charts + new
+> metrics, the last-super-admin guard (DB + app + tests), user revoke-sessions /
+> export / notes, and the security-event recorder. **Status of Phase-2 work:**
+> the app/UI/permission layer is **Implemented** (builds, 333 tests, deployed);
+> everything that reads a **0006** table/RPC is **Code complete — migration
+> required** (honest "migration required" state until `SUPABASE_ADMIN_COMPLETION.sql`
+> is applied) and **not yet live-verified** (also needs the super_admin
+> bootstrap). Revoke-sessions is **Implemented, not live-verified** (uses the
+> ban-invalidate primitive; can't be exercised without a live session).
+
 **Audit-surfaced defects (fixed / to fix)**
 
-- ✅ **Fixed 2026-08-01:** `/api/health` storage was hardcoded `operational` — now derives from DB reachability (honest).
-- ⚠️ **To fix (Phase 2):** no explicit **last-super-admin guard** (`admin_grant_role`/team actions) — lockout risk.
-- ⚠️ **To fix (Phase 2):** `admin_log()` DB grant is gated by *any* active admin, not a specific permission (coarse); DB role re-check is role-set coarse vs the app's fine matrix.
-- ⚠️ **Declared-but-unbacked permissions** in `roles.ts`: `revoke_sessions`, `export_reports` have no implementation yet.
+- ✅ **Fixed 2026-08-01 (Phase 1):** `/api/health` storage was hardcoded `operational` — now derives from DB reachability (honest).
+- ✅ **Fixed 2026-08-01 (Phase 2):** explicit **last-super-admin guard** — enforced in the DB (`admin_grant_role`, advisory-locked), an app pre-check, and unit tests.
+- ✅ **Fixed 2026-08-01 (Phase 2):** `revoke_sessions` (revoke-sessions action) and user-data **export** (`export_user_data`) are now implemented + audited (previously declared-but-unbacked).
+- ⚠️ **Still open:** `admin_log()` DB grant is gated by *any* active admin, not a specific permission (coarse); the DB role re-check is role-set coarse vs the app's fine matrix. (Low risk — non-admins still can't write; a follow-up can tighten.)
 
 **Enterprise expansion (spec Phases 5–16) — not built (roadmap):** password-protected QR pages, custom slugs + aliases, bulk CSV import, team workspaces, branded tracking domains, public API (v1 + keys/scopes), campaigns, conversion tracking, live scan globe, deep per-type public redesign, editor↔public component unification, 6 new QR types (Email/SMS/Event/Review/Text/Location).
 
@@ -91,6 +104,7 @@
 | `0003_dashboard_analytics.sql` | unique visitors, daily activity, OS breakdown, recent feed | ✅ applied (confirmed live — dashboard shows real numbers, not the fallback) |
 | `0004_admin_expansion.sql` | admin platform, presence, pause, suspension, entitlements | ✅ **applied** (live-verified 2026-07-24: 48/49 checks; full permission matrix enforced) |
 | `0005_product_features.sql` | scheduling, folders, tags, version history, notifications | ✅ **applied** (live-verified 2026-07-24) |
+| `0006_admin_completion.sql` | admin notes, export jobs, security events, last-super-admin guard, admin analytics/QR/subscriptions/audit/search RPCs | ⛔ **NOT applied yet** — apply `supabase/SUPABASE_ADMIN_COMPLETION.sql` (or migration 0006). The new admin pages degrade to "Code complete — migration required" until then. |
 
 > ✅ **Migrations 0004 + 0005 are applied and live-verified** (48/49 checks on
 > 2026-07-24). The admin authorization matrix — the four admin roles

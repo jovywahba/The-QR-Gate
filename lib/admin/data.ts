@@ -338,6 +338,48 @@ export async function listAdminQrs(
   }
 }
 
+export type AdminQrDetail = AdminQrRow & { pauseReason: string | null; timezone: string | null; updatedAt: string | null };
+
+export async function getAdminQrDetail(
+  supabase: SupabaseClient,
+  qrId: string,
+): Promise<{ available: boolean; row: AdminQrDetail | null }> {
+  try {
+    const { data, error } = await supabase.rpc("admin_qr_detail", { p_qr_id: qrId });
+    if (error) return { available: false, row: null };
+    if (!data || typeof data !== "object") return { available: true, row: null };
+    const r = data as Record<string, unknown>;
+    return {
+      available: true,
+      row: {
+        id: String(r.id),
+        name: s(r.name),
+        type: String(r.type ?? ""),
+        status: String(r.status ?? ""),
+        slug: s(r.slug),
+        trackingMode: s(r.tracking_mode),
+        destinationUrl: s(r.destination_url),
+        ownerId: String(r.owner_id),
+        ownerEmail: s(r.owner_email),
+        scans: n(r.scans),
+        uniqueVisitors: n(r.unique_visitors),
+        lastScanAt: s(r.last_scan_at),
+        versionCount: n(r.version_count),
+        createdAt: s(r.created_at),
+        publishedAt: s(r.published_at),
+        startsAt: s(r.starts_at),
+        endsAt: s(r.ends_at),
+        moderationLocked: b(r.moderation_locked),
+        pauseReason: s(r.pause_reason),
+        timezone: s(r.timezone),
+        updatedAt: s(r.updated_at),
+      },
+    };
+  } catch {
+    return { available: false, row: null };
+  }
+}
+
 export type AdminSubRow = {
   userId: string;
   email: string | null;

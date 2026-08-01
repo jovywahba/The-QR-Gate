@@ -11,6 +11,24 @@ Format: `YYYY-MM-DD · [design vX.Y | template] what changed · backport? (which
 - 2026-06-17 · [template] Initial scaffold built & type-checked (tsc clean): Next 15 + React 19 + Tailwind v4 + shadcn (new-york/stone/0.5rem) wired to Design System v1.0 tokens; Supabase auth (email+password) + RLS migration; Stripe trial Checkout + verified webhook + portal; Resend; marketing site (landing, pricing, alternatives/[slug], about, blog, docs, status, legal) + product shell; Vercel Analytics. `lib/site.ts` is the per-app config seam.
 
 ## App history (The QR Gate — beyond the template)
+- 2026-08-01 · **Admin completion — page wiring + live verification (Phase 2 finish).**
+  Migration 0006 applied to prod + super_admin bootstrapped by the owner.
+  **Live-verified against the production DB (anon probe):** all 11 new 0006 RPCs
+  exist and are correctly gated (anon → forbidden, not missing) and all 3 new
+  tables are RLS-protected. Wired the three remaining existing pages to their
+  0006 RPCs: **Admin QR Codes** (`admin_qr_list`/`admin_qr_detail` — search by
+  owner/name/id/slug, all status + scheduled/expired filters, scans/unique/
+  last-scan/version/schedule columns, copy public URL, moderation-locked badge;
+  password/health/broken-asset honestly deferred to their features);
+  **Subscriptions** (`admin_subscriptions_list` — status buckets, active-QR
+  usage vs quota, cancel-at-period-end, complimentary shown separately);
+  **Audit** (`admin_audit_query` — action/target/date filters + pagination +
+  safe metadata viewer). **Playwright genuinely installed + run** (chromium via
+  npx; project lockfile untouched since pnpm is broken here): the deterministic
+  `admin-gate.spec.ts` **passed 22/22 against production** (every `/admin/*`→404
+  anon, `/dashboard/*`→sign-in, public→200, unsigned webhook→400). Authenticated
+  role-matrix E2E still needs seeded per-role sessions (documented). tsc/lint
+  clean, 333 tests, verify:security PASS, build green.
 - 2026-08-01 · **Admin panel completion (enterprise Phase 2).** Completed the
   existing admin platform (no second system). New migration
   `0006_admin_completion.sql` (+ consolidated `SUPABASE_ADMIN_COMPLETION.sql`,

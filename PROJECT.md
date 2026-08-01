@@ -74,18 +74,20 @@
 | Global Search | NONE | no permission-aware global search box |
 | System-Health admin page | NONE | only the public `/status` + `/api/health`; no admin page, no webhook-delivery/cron checks |
 
-> **Phase 2 update (2026-08-01) — admin completion shipped (code):** the matrix
-> above reflects the *pre-Phase-2* state. Phase 2 (commit shipped this session)
-> **built** all the gaps: the 5 new pages (Analytics/Reports/System-Health/
-> Security/Support), permission-aware global search, Overview charts + new
-> metrics, the last-super-admin guard (DB + app + tests), user revoke-sessions /
-> export / notes, and the security-event recorder. **Status of Phase-2 work:**
-> the app/UI/permission layer is **Implemented** (builds, 333 tests, deployed);
-> everything that reads a **0006** table/RPC is **Code complete — migration
-> required** (honest "migration required" state until `SUPABASE_ADMIN_COMPLETION.sql`
-> is applied) and **not yet live-verified** (also needs the super_admin
-> bootstrap). Revoke-sessions is **Implemented, not live-verified** (uses the
-> ban-invalidate primitive; can't be exercised without a live session).
+> **Phase 2 COMPLETE (2026-08-01) — admin panel finished + live-verified:** the
+> pre-Phase-2 matrix above is superseded. All gaps built: 5 new pages
+> (Analytics/Reports/System-Health/Security/Support), permission-aware global
+> search, Overview charts + metrics, the last-super-admin guard (DB + app +
+> tests), user revoke-sessions/export/notes, the security recorder, AND the three
+> remaining pages **wired to their 0006 RPCs** (QR Codes → `admin_qr_list`/
+> `admin_qr_detail` w/ search+filters+copy-URL; Subscriptions → `admin_subscriptions_list`
+> w/ active-QR usage; Audit → `admin_audit_query` w/ filters+pagination+metadata).
+> **Live-verified:** migration 0006 applied (anon RPC/table probe → gated/protected),
+> and Playwright `admin-gate.spec.ts` **passed 22/22 against production** (anon
+> `/admin/*`→404, `/dashboard/*`→sign-in, public→200, unsigned webhook→400).
+> **Still needs the owner:** authenticated role-matrix E2E (seeded per-role
+> sessions on an isolated test project — I can't sign in). Revoke-sessions is
+> Implemented but not exercised without a live session.
 
 **Audit-surfaced defects (fixed / to fix)**
 
@@ -104,7 +106,7 @@
 | `0003_dashboard_analytics.sql` | unique visitors, daily activity, OS breakdown, recent feed | ✅ applied (confirmed live — dashboard shows real numbers, not the fallback) |
 | `0004_admin_expansion.sql` | admin platform, presence, pause, suspension, entitlements | ✅ **applied** (live-verified 2026-07-24: 48/49 checks; full permission matrix enforced) |
 | `0005_product_features.sql` | scheduling, folders, tags, version history, notifications | ✅ **applied** (live-verified 2026-07-24) |
-| `0006_admin_completion.sql` | admin notes, export jobs, security events, last-super-admin guard, admin analytics/QR/subscriptions/audit/search RPCs | ⛔ **NOT applied yet** — apply `supabase/SUPABASE_ADMIN_COMPLETION.sql` (or migration 0006). The new admin pages degrade to "Code complete — migration required" until then. |
+| `0006_admin_completion.sql` | admin notes, export jobs, security events, last-super-admin guard, admin analytics/QR/subscriptions/audit/search RPCs | ✅ **applied** (2026-08-01) — **live-verified**: all 11 new RPCs exist + anon-gated (anon → forbidden), all 3 new tables RLS-protected (anon probe with the prod key). |
 
 > ✅ **Migrations 0004 + 0005 are applied and live-verified** (48/49 checks on
 > 2026-07-24). The admin authorization matrix — the four admin roles

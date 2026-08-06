@@ -49,8 +49,8 @@
 | Area | Status | Notes |
 |------|--------|-------|
 | Supabase auth (email+password) + Google OAuth | LIVE | `/sign-in` 200; OAuth callback wired |
-| Stripe Checkout · webhook (signature-verified, idempotent) · portal | CFG | config live (`/api/health` payments=operational); **full sandbox card→webhook→DB flow NOT live-verified** (card entry out of scope for the agent) |
-| Live-mode vs test Stripe keys in prod | CFG | `payments=operational` proves keys are set; **owner must confirm they are LIVE-mode before charging real customers** |
+| Stripe Checkout · webhook (signature-verified, idempotent) · portal | LIVE (config) | Live mode configured + hardened; **`GET /api/health/stripe` self-check** validates the price (active/USD/$10/monthly/product-name/live-mode) with the Live key server-side, safe booleans only. **A real card→webhook→DB payment is NOT claimed verified — the owner's manual step.** |
+| Live-mode vs test Stripe keys in prod | LIVE | **enforced in code**: Vercel PRODUCTION requires a LIVE key (`liveKeySatisfied`); a test key in prod → billing "unconfigured" (won't charge). Preview/Dev stay on Sandbox. Confirm via `/api/health/stripe`. |
 | Migrations 0000–0005 applied to prod | LIVE | 0004/0005 live-verified 2026-07-24 (see CHANGELOG); DB currently operational |
 | Custom domain `www.theqrgate.com` · `/api/health` · `/status` | LIVE | routes 200; storage health made honest 2026-08-01 (was hardcoded) |
 | Legal `/privacy` · `/terms` | LIVE | 200; flagged for legal review before launch |

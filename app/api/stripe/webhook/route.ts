@@ -5,6 +5,7 @@ import {
   sendSubscriptionActivatedEmail,
   sendSubscriptionCanceledEmail,
 } from "@/lib/emails";
+import { eventMatchesKeyMode } from "@/lib/stripe/config";
 import { getStripe } from "@/lib/stripe/server";
 import { iso, subPeriod } from "@/lib/stripe/webhook-utils";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -83,6 +84,14 @@ export async function POST(req: NextRequest) {
     event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch {
     return new NextResponse("Invalid signature", { status: 400 });
+  }
+
+  // Live/Sandbox separation: a live webhook secret only verifies live events
+  // (the signature already blocks cross-mode delivery). This is the explicit
+  // guard — acknowledge but never PROCESS an event whose livemode disagrees
+  // with our key mode, so Sandbox and Live can never mix.
+  if (!eventMatchesKeyMode(event.livemode)) {
+    return NextResponse.json({ received: true, ignored: "livemode_mismatch" });
   }
 
   const supabase = createAdminClient();

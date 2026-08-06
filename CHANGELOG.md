@@ -11,6 +11,27 @@ Format: `YYYY-MM-DD · [design vX.Y | template] what changed · backport? (which
 - 2026-06-17 · [template] Initial scaffold built & type-checked (tsc clean): Next 15 + React 19 + Tailwind v4 + shadcn (new-york/stone/0.5rem) wired to Design System v1.0 tokens; Supabase auth (email+password) + RLS migration; Stripe trial Checkout + verified webhook + portal; Resend; marketing site (landing, pricing, alternatives/[slug], about, blog, docs, status, legal) + product shell; Vercel Analytics. `lib/site.ts` is the per-app config seam.
 
 ## App history (The QR Gate — beyond the template)
+- 2026-08-01 · **Production Stripe hardening (Live mode).** Owner switched Stripe
+  to Live in Vercel Production. Hardened + made it self-verifying without ever
+  exposing a key/id: `lib/stripe/config.ts` now enforces **Vercel PRODUCTION ⇒
+  LIVE secret key** (`secretKeyMode`/`requiresLiveKey`/`liveKeySatisfied`;
+  `isBillingConfigured` returns false for a test key in prod so checkout can't
+  charge through Sandbox), keeps Preview/Dev on Sandbox, and adds
+  `eventMatchesKeyMode` so **Live and Sandbox webhook events can't be mixed**
+  (the webhook now acknowledges-but-ignores an event whose `livemode` disagrees
+  with the key — on top of the existing raw-body + signature verification). New
+  pure `lib/stripe/price-check.ts` (`evaluatePrice`) validates the configured
+  price: active · USD · unit_amount 1000 · monthly · product name "The QR Gate
+  Pro". New `lib/stripe/verify.ts` + **`GET /api/health/stripe`** run that check
+  live on the server (Live key only exists in prod) and return **safe booleans
+  only — never a key, price/product/customer id, or payload** (cached 60s).
+  `verify:security` now also asserts no client component references a Stripe
+  secret. Checkout still uses ONLY `STRIPE_PRICE_PRO_MONTHLY` (browser can't
+  pass a price); portal uses the stored customer server-side; all URLs use
+  `https://www.theqrgate.com`. +15 tests (354 total: production-rejects-test-key,
+  dev-permits, wrong amount/currency/interval, inactive, name-mismatch, key-mode,
+  event-mode). tsc/lint clean, build green, verify:security PASS. **A real card
+  payment is NOT claimed as verified — that's the owner's manual step.**
 - 2026-08-01 · **Admin completion — page wiring + live verification (Phase 2 finish).**
   Migration 0006 applied to prod + super_admin bootstrapped by the owner.
   **Live-verified against the production DB (anon probe):** all 11 new 0006 RPCs

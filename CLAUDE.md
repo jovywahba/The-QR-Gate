@@ -234,3 +234,12 @@ in CI **at build time, never by a user complaint.**
   status of each section (analytics, reports, security, support, global search, charts,
   etc.) before building.** Admin never sees WiFi passwords, protected content, card data,
   or secrets. First admin is bootstrapped by a one-line SQL insert (see `PROJECT.md`).
+- **Stripe (Live vs Sandbox):** `lib/stripe/config.ts` enforces **Vercel PRODUCTION ⇒
+  LIVE secret key** (`requiresLiveKey`/`liveKeySatisfied`; a test key in prod makes
+  `isBillingConfigured()` false so checkout won't charge); Preview/Dev use Sandbox.
+  Checkout charges ONLY `STRIPE_PRICE_PRO_MONTHLY` (the browser can never pass a
+  price); the webhook verifies raw body + signature AND `eventMatchesKeyMode` (Live
+  and Sandbox events can't mix); portal uses the stored customer server-side; all
+  URLs use `site.url`. **`GET /api/health/stripe`** self-checks the live price
+  (active/USD/$10/monthly/product-name/live-mode) and returns **safe booleans only** —
+  never a key, id, or payload. Never move Live secrets into committed files.

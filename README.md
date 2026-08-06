@@ -76,3 +76,11 @@ The repository root is the Next.js app — Vercel detects it automatically.
 Set the environment variables from `.env.example` in the Vercel project and
 point `NEXT_PUBLIC_APP_URL` / `NEXT_PUBLIC_SITE_URL` at the production domain
 so published QR codes encode the right origin.
+
+**Stripe (Live vs Sandbox):** Vercel **Production must use Live keys**
+(`sk_live_…`); a test key in production makes billing "unconfigured" and will
+not charge (enforced in `lib/stripe/config.ts`). Preview / Development /
+`.env.local` use Sandbox/Test keys. Verify the Live config safely at
+[`/api/health/stripe`](https://www.theqrgate.com/api/health/stripe) — it returns
+correctness booleans only (price active / USD / $10 / monthly / product name /
+live-mode), never a key, id, or payload.

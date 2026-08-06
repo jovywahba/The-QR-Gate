@@ -80,23 +80,22 @@ section("Secret hygiene (git)");
   if (!leak) pass("no real live-key / signing-secret values in tracked files");
 }
 
-// ── 2. Service-role key is server-only (client-bundle leak check) ──
-section("Service-role key never reaches the client bundle");
+// ── 2. Server secrets never reach the client bundle (leak check) ──
+section("Server secrets never reach the client bundle");
 {
   const files = globSync("{app,components,lib}/**/*.{ts,tsx}", { cwd: ROOT }).filter(
     (f) => !f.includes("__tests__"),
   );
+  const SECRETS = /SUPABASE_SERVICE_ROLE_KEY|STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET|createAdminClient/;
   const offenders = [];
   for (const f of files) {
     const src = readFileSync(f, "utf8");
     const isClient = /^\s*["']use client["']/m.test(src);
-    const touchesServiceRole =
-      /SUPABASE_SERVICE_ROLE_KEY/.test(src) || /createAdminClient/.test(src);
-    if (isClient && touchesServiceRole) offenders.push(f);
+    if (isClient && SECRETS.test(src)) offenders.push(f);
   }
   offenders.length === 0
-    ? pass("no client component references the service-role key or admin client")
-    : offenders.forEach((f) => fail(`client component touches service-role: ${f}`));
+    ? pass("no client component references the service-role key, admin client, or Stripe secrets")
+    : offenders.forEach((f) => fail(`client component touches a server secret: ${f}`));
 
   // The admin client itself must be server-only.
   try {

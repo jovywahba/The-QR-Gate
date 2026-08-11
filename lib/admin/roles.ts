@@ -45,6 +45,7 @@ export type Permission =
   | "export_user_data"
   | "moderate_qr"
   | "manage_entitlements"
+  | "manage_promotions"
   | "manage_admins"
   | "export_reports";
 
@@ -53,8 +54,8 @@ const ALL: Permission[] = [
   "view_analytics", "view_subscriptions", "view_audit", "view_reports",
   "view_security", "view_system_health", "view_support", "global_search",
   "manage_notes", "reset_password", "suspend_users", "revoke_sessions",
-  "export_user_data", "moderate_qr", "manage_entitlements", "manage_admins",
-  "export_reports",
+  "export_user_data", "moderate_qr", "manage_entitlements", "manage_promotions",
+  "manage_admins", "export_reports",
 ];
 
 const ROLE_PERMISSIONS: Record<AdminRole, ReadonlySet<Permission>> = {

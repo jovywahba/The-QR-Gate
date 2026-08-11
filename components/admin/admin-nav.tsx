@@ -13,6 +13,7 @@ import {
   QrCode,
   ShieldAlert,
   ShieldCheck,
+  TicketPercent,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -29,6 +30,7 @@ const ITEMS: Item[] = [
   { href: "/admin/qr-codes", label: "QR Codes", icon: QrCode, perm: "view_qr" },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3, perm: "view_analytics" },
   { href: "/admin/subscriptions", label: "Subscriptions", icon: CreditCard, perm: "view_subscriptions" },
+  { href: "/admin/promo-codes", label: "Promo Codes", icon: TicketPercent, perm: "manage_promotions" },
   { href: "/admin/reports", label: "Reports", icon: FileText, perm: "view_reports" },
   { href: "/admin/support", label: "Support", icon: LifeBuoy, perm: "view_support" },
   { href: "/admin/security", label: "Security", icon: ShieldAlert, perm: "view_security" },

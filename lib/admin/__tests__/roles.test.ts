@@ -23,12 +23,14 @@ const EXPECT: Record<AdminRole, Partial<Record<Permission, boolean>>> = {
     manage_entitlements: true, reset_password: true, view_audit: true, export_reports: true,
     view_reports: true, view_security: true, view_system_health: true, view_support: true,
     global_search: true, manage_notes: true, revoke_sessions: true, export_user_data: true,
+    manage_promotions: true,
   },
   admin: {
     view_admin: true, manage_admins: false, suspend_users: true, moderate_qr: true,
     manage_entitlements: true, reset_password: true, view_audit: true, export_reports: true,
     view_reports: true, view_security: true, view_system_health: true, view_support: true,
     global_search: true, manage_notes: true, revoke_sessions: true, export_user_data: true,
+    manage_promotions: true,
   },
   support: {
     view_admin: true, view_users: true, view_user_detail: true, view_qr: true,

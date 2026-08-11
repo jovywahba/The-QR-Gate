@@ -11,6 +11,17 @@ Format: `YYYY-MM-DD · [design vX.Y | template] what changed · backport? (which
 - 2026-06-17 · [template] Initial scaffold built & type-checked (tsc clean): Next 15 + React 19 + Tailwind v4 + shadcn (new-york/stone/0.5rem) wired to Design System v1.0 tokens; Supabase auth (email+password) + RLS migration; Stripe trial Checkout + verified webhook + portal; Resend; marketing site (landing, pricing, alternatives/[slug], about, blog, docs, status, legal) + product shell; Vercel Analytics. `lib/site.ts` is the per-app config seam.
 
 ## App history (The QR Gate — beyond the template)
+- 2026-08-01 · **Admin Promo Codes.** New `/admin/promo-codes` — an admin can
+  create discount codes for The QR Gate Pro (percent or fixed USD; first-payment /
+  N-months / forever; optional max-uses + expiry). They're **real Stripe Coupons +
+  Promotion Codes** (Stripe is the source of truth; checkout already allows
+  promotion codes, so they work at the Stripe checkout page immediately). New
+  permission `manage_promotions` (super_admin + admin only; unit-tested in the
+  role matrix) + a nav entry. Pure, tested `lib/stripe/promos.ts` (validate +
+  normalize + format), server list in `promos-server.ts`, audited create/deactivate
+  actions (`admin_log`). No local promo table — nothing to migrate. Degrades
+  honestly when Stripe isn't configured. +13 tests (367 total); tsc/lint clean,
+  build green, verify:security PASS.
 - 2026-08-01 · **Production Stripe hardening (Live mode).** Owner switched Stripe
   to Live in Vercel Production. Hardened + made it self-verifying without ever
   exposing a key/id: `lib/stripe/config.ts` now enforces **Vercel PRODUCTION ⇒

@@ -1,19 +1,19 @@
 /**
  * ───────────────────────────────────────────────────────────────
- * Landing-page CONTENT. Pair with lib/site.ts (identity + pricing +
- * comparison). Editing these two files reskins the whole marketing
- * site — you should rarely touch the section components themselves.
+ * Landing-page CONTENT. Pair with lib/site.ts (identity + pricing).
+ * Editing these two files reskins the whole marketing site.
  *
- * Keep copy on-voice: confident, plain, anti-gimmick (docs/MARKETING.md).
+ * Voice: confident, plain, anti-gimmick. Describe what the product does —
+ * no competitor-comparison or "half the price" framing.
  * ───────────────────────────────────────────────────────────────
  */
 import {
-  Wallet,
-  ShieldCheck,
-  Gauge,
-  Plug,
-  Lock,
+  Download,
+  LayoutGrid,
   LineChart,
+  Palette,
+  RefreshCw,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { site } from "@/lib/site";
@@ -24,10 +24,10 @@ export type Faq = { q: string; a: string };
 
 export const landing = {
   // Hero
-  heroBullets: ["No credit-card games", "Set up in minutes", "Cancel anytime"],
+  heroBullets: ["Free to start — 3 codes", "16 QR types", "PNG & SVG downloads"],
 
-  // Social-proof strip (optional — leave blank to hide)
-  socialProof: `For teams done overpaying for ${site.incumbent.name}.`,
+  // Social-proof strip — blank hides it (we don't fabricate testimonials).
+  socialProof: "",
 
   // What's in the plan (shown on the pricing card — The QR Gate Pro)
   planIncludes: [
@@ -38,68 +38,68 @@ export const landing = {
     "Email support",
   ],
 
-  // Features — the core "80%" you rebuilt. 3 or 6 reads best.
+  // Features — the core capabilities.
   features: [
     {
-      icon: Wallet,
-      title: "Half the price",
-      body: `Everything you actually use from ${site.incumbent.name}, billed at roughly half. No per-feature upsells.`,
+      icon: LayoutGrid,
+      title: "16 QR types",
+      body: "Websites, WiFi, vCards, PDFs, menus, social profiles, coupons and more — one builder for every kind of QR code.",
     },
     {
-      icon: Gauge,
-      title: "Set up in minutes",
-      body: "Self-serve from day one. No sales call, no onboarding fee, no implementation quarter.",
+      icon: Palette,
+      title: "Design that still scans",
+      body: "Colors, gradients, dot & corner styles, a center logo and framed calls-to-action — with a live scan-safety check.",
     },
     {
-      icon: ShieldCheck,
-      title: "Secure by default",
-      body: "Row-level security, encrypted at rest, SSO and audit logs included — not a premium add-on.",
-    },
-    {
-      icon: Plug,
-      title: "Switch in an afternoon",
-      body: `Import your data and keep moving. We built the workflow to feel familiar coming from ${site.incumbent.name}.`,
-    },
-    {
-      icon: Lock,
-      title: "Your data is yours",
-      body: "Export anytime. No lock-in, no hostage pricing, no surprise tier you have to call to leave.",
+      icon: RefreshCw,
+      title: "Dynamic & editable",
+      body: "Hosted QR codes get a real landing page — edit the destination anytime without reprinting the code.",
     },
     {
       icon: LineChart,
+      title: "Real scan analytics",
+      body: "Scans over time, unique visitors, devices and countries — privacy-safe, and no per-scan fees.",
+    },
+    {
+      icon: Download,
+      title: "PNG & SVG downloads",
+      body: "Export at 512 / 1024 / 2048 px or as crisp vector SVG — print-ready, no watermark.",
+    },
+    {
+      icon: Wallet,
       title: "Honest, flat pricing",
-      body: "One plan, one number. The price on the page is the price you pay.",
+      body: `Start free with ${site.pricing.freeQrLimit} codes. Go unlimited on Pro for $${site.pricing.amount}/mo. The price on the page is the price you pay.`,
     },
   ] satisfies Feature[],
 
   // How it works — 3 steps.
   steps: [
-    { title: "Sign up free", body: "Create your account free — 3 QR codes, no card required." },
-    { title: "Build your QR", body: "Pick a type, add content, style it, and download." },
-    { title: "Go unlimited", body: `Upgrade to Pro for $${site.pricing.amount}/mo — unlimited codes + analytics.` },
+    { title: "Pick a type", body: "Choose from 16 QR types — website, WiFi, vCard, PDF, menu and more." },
+    { title: "Add content & design", body: "Fill in your details, then style the code and check it still scans." },
+    { title: "Download or publish", body: `Export PNG/SVG free, or publish a hosted, trackable code. Go unlimited on Pro for $${site.pricing.amount}/mo.` },
   ] satisfies Step[],
 
-  // FAQ — also earns long-tail search + handles objections.
+  // FAQ — handles objections + earns long-tail search.
   faqs: [
     {
-      q: `How can you be half of ${site.incumbent.name}'s price?`,
-      a: "We rebuilt the features most people actually use and run lean — no enterprise sales team, no bloat. The savings go to you.",
+      q: "What's a dynamic (hosted) QR code?",
+      a: `A hosted QR points at a page we host at ${site.domain}/q/… , so you can edit the destination or see scan analytics without changing the printed code. Direct types (like WiFi or a plain URL) encode the value itself.`,
     },
     {
-      q: "Is it as secure?",
-      a: "Yes. Row-level security on every table, encryption at rest, and SSO + audit logs included on every plan.",
-    },
-    {
-      q: `Can I migrate from ${site.incumbent.name}?`,
-      a: "Yes — import your existing data and keep working. Most teams switch in an afternoon.",
+      q: "Do the codes expire or have scan limits?",
+      a: `No — your codes don't expire and there are no per-scan fees. Free accounts keep up to ${site.pricing.freeQrLimit} active codes; Pro is unlimited.`,
     },
     {
       q: "Is there a free plan?",
-      a: `Yes — every account gets 3 free QR codes, no card required. Upgrade to Pro ($${site.pricing.amount}/mo) for unlimited codes and scan analytics.`,
+      a: `Yes — every account gets ${site.pricing.freeQrLimit} free QR codes, no card required. Upgrade to Pro ($${site.pricing.amount}/mo) for unlimited codes and scan analytics.`,
     },
     {
-      q: "What's the catch?",
-      a: "None. One honest price, cancel anytime, export your data whenever you want.",
+      q: "Can I customize how the QR looks?",
+      a: "Yes — colors, gradients, dot and corner styles, a center logo, frames and a call-to-action, with a live readability check so it still scans.",
+    },
+    {
+      q: "What formats can I download?",
+      a: "PNG at 512, 1024 or 2048 px, and true vector SVG. No watermark on either.",
     },
     {
       q: "Do you offer support?",

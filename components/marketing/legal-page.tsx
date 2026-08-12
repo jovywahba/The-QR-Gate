@@ -15,14 +15,6 @@ export function LegalPage({
       <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
       <p className="mt-2 font-mono text-xs text-muted-foreground">Last updated: {updated}</p>
 
-      {/* TEMPLATE NOTICE — delete once customized + reviewed by counsel. */}
-      <div className="mt-6 rounded-lg border border-dashed bg-secondary/50 p-4 text-xs leading-relaxed text-muted-foreground">
-        <strong className="font-medium text-foreground">Template document.</strong> Boilerplate to
-        adapt per product: replace the <code className="font-mono">[bracketed]</code> placeholders,
-        confirm the data practices and subprocessors match this app, and have counsel review before
-        launch. This is not legal advice.
-      </div>
-
       <div className="mt-10 flex flex-col gap-8">{children}</div>
     </div>
   );

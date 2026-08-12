@@ -12,21 +12,13 @@ export const metadata: Metadata = { title: "Terms of Service" };
  */
 export default function TermsPage() {
   return (
-    <LegalPage title="Terms of Service" updated="July 24, 2026">
-      <LegalSection heading="Review note">
-        <p>
-          These Terms describe how the Service works today. They are not legal advice. The operating
-          legal entity, governing law, venue, and refund policy must be confirmed and this document
-          reviewed by counsel before it is relied upon.
-        </p>
-      </LegalSection>
-
+    <LegalPage title="Terms of Service" updated="August 12, 2026">
       <LegalSection heading="1. Agreement to terms">
         <p>
           These Terms of Service (“Terms”) are a binding agreement between you and the operator of{" "}
-          <strong>{site.domain}</strong> (“{site.name},” “we,” “us”; operating entity to be confirmed).
-          By creating an account or using the Service, you agree to these Terms. If you use the Service
-          for an organization, you represent that you’re authorized to bind it.
+          <strong>{site.domain}</strong> (“{site.name},” “we,” “us”). By creating an account or using
+          the Service, you agree to these Terms. If you use the Service for an organization, you
+          represent that you’re authorized to bind it.
         </p>
       </LegalSection>
 
@@ -57,7 +49,7 @@ export default function TermsPage() {
           <li><strong>Renewals.</strong> Paid plans renew automatically until cancelled. Cancel anytime from billing settings; access continues to the end of the paid period.</li>
           <li><strong>After cancellation.</strong> Your existing published QR codes keep working, but you cannot create new active QR codes beyond the free limit until you re-subscribe.</li>
           <li><strong>Taxes.</strong> Fees exclude taxes, which you’re responsible for where applicable.</li>
-          <li><strong>Refunds.</strong> Except where required by law, payments are non-refundable (confirm your refund policy).</li>
+          <li><strong>Refunds.</strong> Except where required by law, payments are non-refundable.</li>
         </ul>
       </LegalSection>
 
@@ -146,21 +138,12 @@ export default function TermsPage() {
       <LegalSection heading="14. Changes; governing law">
         <p>
           We may update these Terms; if changes are material we’ll give notice before they take effect,
-          and continued use means you accept them. These Terms are governed by the laws of the operator’s
-          jurisdiction (to be confirmed), without regard to conflict-of-laws rules.
+          and continued use means you accept them. These Terms are governed by the laws applicable at the
+          operator’s principal place of business, without regard to conflict-of-laws rules.
         </p>
       </LegalSection>
 
-      <LegalSection heading="15. Independence & trademarks">
-        <p>
-          {site.incumbent.name} is a trademark of its respective owner. {site.name} is independent and
-          not affiliated with, endorsed by, or sponsored by {site.incumbent.name}. Any comparisons are
-          informational and reflect publicly available information believed accurate as of the date
-          stated.
-        </p>
-      </LegalSection>
-
-      <LegalSection heading="16. Contact">
+      <LegalSection heading="15. Contact">
         <p>
           Questions about these Terms? Contact <a href={`mailto:${site.email}`}>{site.email}</a>.{" "}
           {site.name} is a Halfstack product.

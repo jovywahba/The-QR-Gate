@@ -2,11 +2,11 @@ import { Logo } from "@/components/brand/logo";
 import { AccountNav } from "@/components/marketing/account-nav";
 import { SmoothLink } from "@/components/marketing/smooth-link";
 
-// On-page anchors smooth-scroll (via SmoothLink); /docs and /blog are real pages.
+// Every item is a real page (no dead on-page anchors — the homepage is the
+// generator, not a long marketing scroll). Features + FAQ live on /pricing.
 const NAV = [
-  { href: "/#features", label: "Features" },
-  { href: "/#pricing", label: "Pricing" },
-  { href: "/#faq", label: "FAQ" },
+  { href: "/", label: "QR Generator" },
+  { href: "/pricing", label: "Pricing" },
   { href: "/docs", label: "Docs" },
   { href: "/blog", label: "Blog" },
 ];

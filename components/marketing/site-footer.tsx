@@ -6,10 +6,9 @@ const COLUMNS = [
   {
     heading: "Product",
     links: [
-      { href: "/#features", label: "Features" },
-      { href: "/#pricing", label: "Pricing" },
-      { href: `/alternatives/${site.alternatives[0]?.slug ?? ""}`, label: `vs ${site.incumbent.name}` },
-      { href: "/status", label: "Status" },
+      { href: "/", label: "QR Generator" },
+      { href: "/pricing", label: "Pricing" },
+      { href: "/dashboard", label: "Dashboard" },
     ],
   },
   {
@@ -17,13 +16,14 @@ const COLUMNS = [
     links: [
       { href: "/docs", label: "Docs" },
       { href: "/blog", label: "Blog" },
-      // Shared support inbox for all tools (see docs/ENGINEERING.md).
-      { href: `mailto:${site.email}`, label: "Contact" },
+      { href: "/status", label: "Status" },
     ],
   },
   {
-    heading: "Legal",
+    heading: "Company",
     links: [
+      // Shared support inbox for all tools (see docs/ENGINEERING.md).
+      { href: `mailto:${site.email}`, label: "Support" },
       { href: "/terms", label: "Terms" },
       { href: "/privacy", label: "Privacy" },
     ],
@@ -56,10 +56,7 @@ export function SiteFooter() {
       </div>
       <div className="border-t">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-6 text-xs text-muted-foreground md:flex-row md:items-center md:justify-between">
-          <span>
-            © {site.name}. {site.incumbent.name} is a trademark of its respective owner;{" "}
-            {site.name} is independent and not affiliated with or endorsed by {site.incumbent.name}.
-          </span>
+          <span>© {new Date().getFullYear()} {site.name}. All rights reserved.</span>
           <span className="font-mono">{site.domain}</span>
         </div>
       </div>

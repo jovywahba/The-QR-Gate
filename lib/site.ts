@@ -1,35 +1,15 @@
 /**
  * ───────────────────────────────────────────────────────────────
  * THE per-app config. Editing this object reskins the whole
- * marketing site, pricing, comparison/alternative pages, footer,
- * and metadata. Start every new app here.
+ * marketing site, pricing, footer, and metadata.
  *
- * Rules (see /CLAUDE.md §11–§12):
- *  - `name` is an ORIGINAL, Halfstack-owned brand. The incumbent name is
- *    only used factually in comparisons.
- *  - Price ≈ 1/2 of the incumbent, rounded clean.
- *  - Comparison claims must be truthful + sourced + dated.
+ * The QR Gate is an original, Halfstack-owned brand — a QR code
+ * generator sold as one simple plan (free tier + Pro). We do NOT run
+ * a "half the price of <competitor>" comparison story: there is no
+ * verified competitor price to anchor to, so the positioning is about
+ * what the product does, not what it undercuts.
  * ───────────────────────────────────────────────────────────────
  */
-
-export type ComparisonRow = {
-  label: string;
-  incumbent: string; // e.g. "$120" or "+$40/seat" or "Add-on"
-  halfstack: string; // e.g. "$60" or "Included"
-  /** short savings pill, e.g. "½", "−50%", "$0" */
-  save?: string;
-};
-
-export type Alternative = {
-  /** url slug: /alternatives/<slug> */
-  slug: string;
-  /** the incumbent this page targets (factual, nominative use only) */
-  competitor: string;
-  /** <title> + H1 driver, e.g. "The {competitor} alternative at half the price" */
-  headline: string;
-  subhead: string;
-  rows: ComparisonRow[];
-};
 
 /**
  * Canonical absolute origin, normalized from NEXT_PUBLIC_SITE_URL: trailing
@@ -49,18 +29,9 @@ export const site = {
   url: resolveSiteUrl(),
   tagline: "Create, customize, and share QR codes.",
   description:
-    "Create QR codes for websites, WhatsApp, WiFi, contact cards and more — pick a type, add your content, style it, download. Half the price of the big QR platforms.",
+    "Create QR codes for websites, WhatsApp, WiFi, contact cards, PDFs and more — pick a type, add your content, style it, and download as PNG or SVG. Free to start; go unlimited with Pro.",
 
-  // ── The incumbent we model (factual comparison only) ─────────
-  incumbent: {
-    name: "QR Code Generator PRO", // Bitly's qr-code-generator.com
-    url: "https://www.qr-code-generator.com",
-    priceLabel: "TODO — verify before any public claim", // TODO: their headline price
-    source: "https://www.qr-code-generator.com/pricing/", // TODO: verify
-    sourcedOn: "", // TODO: YYYY-MM-DD when verified
-  },
-
-  // ── Our pricing ──────────────────────────────────────────────
+  // ── Pricing ──────────────────────────────────────────────────
   //    Free: 3 active QR codes. Pro: unlimited + scan analytics.
   pricing: {
     amount: 10, // The QR Gate Pro — $10/mo
@@ -75,40 +46,15 @@ export const site = {
   // ── Halfstack endorser brand ─────────────────────────────────
   halfstack: {
     label: "A Halfstack product",
-    portfolioUrl: "https://tryhalfstack.com", // the Halfstack home — every product links back here (keep)
+    portfolioUrl: "https://tryhalfstack.com",
   },
 
   // ── Footer / contact ─────────────────────────────────────────
-  email: "info@tryhalfstack.com", // SUPPORT INBOX — all tools route here for now (shared; keep). See docs/ENGINEERING.md
+  email: "info@tryhalfstack.com", // support inbox (shared)
   social: {
-    x: "", // optional
+    x: "",
     github: "",
   },
-
-  // ── Headline comparison (shown on landing + /pricing) ────────
-  comparison: {
-    rows: [
-      { label: "Per seat / month", incumbent: "$120", halfstack: "$60", save: "½" },
-      { label: "25 seats / year", incumbent: "$36,000", halfstack: "$18,000", save: "−50%" },
-      { label: "SSO & audit logs", incumbent: "+$40 / seat", halfstack: "Included", save: "$0" },
-    ] satisfies ComparisonRow[],
-  },
-
-  // ── Programmatic "<Incumbent> alternative" pages ─────────────
-  //    Each becomes /alternatives/<slug>. Keep claims truthful + sourced.
-  alternatives: [
-    {
-      slug: "incumbent",
-      competitor: "Incumbent",
-      headline: "The Incumbent alternative at half the price",
-      subhead: "Same core workflow, half the bill. Switch in an afternoon.",
-      rows: [
-        { label: "Per seat / month", incumbent: "$120", halfstack: "$60", save: "½" },
-        { label: "SSO & audit logs", incumbent: "+$40 / seat", halfstack: "Included", save: "$0" },
-        { label: "Setup time", incumbent: "Sales call", halfstack: "Self-serve", save: "" },
-      ],
-    },
-  ] satisfies Alternative[],
 } as const;
 
 export type Site = typeof site;

@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { QRBuilder, type SavedQRRecord } from "@/components/qr-generator/qr-builder-layout";
 import { isQRType } from "@/lib/qr/registry";
-import type { QRContent, QRType, WizardStep } from "@/lib/qr/types";
+import type { QRContent, QRType } from "@/lib/qr/types";
+import { resolveWizardStep } from "@/lib/qr/wizard-url";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -15,12 +16,6 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = {
   title: "Create a QR Code",
 };
-
-function parseStep(raw: string | undefined, type: QRType | null): WizardStep {
-  if (!type) return 1;
-  const n = Number(raw);
-  return n === 2 || n === 3 || n === 4 ? (n as WizardStep) : 1;
-}
 
 async function loadSavedRecord(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -99,18 +94,17 @@ export default async function CreatePage({
       loaded = null;
     }
     if (!loaded) notFound();
-    const step = parseStep(params.step ?? "2", loaded.type);
+    // A saved record always has a type, so this never resolves to Step 1.
+    const step = resolveWizardStep(params.step, true);
     return (
-      <QRBuilder
-        initialType={loaded.type}
-        initialStep={step === 1 ? 2 : step}
-        initialRecord={loaded.record}
-      />
+      <QRBuilder initialType={loaded.type} initialStep={step} initialRecord={loaded.record} />
     );
   }
 
+  // Deep link by type: a valid `?type=` selects that type and opens Step 2
+  // (Add Content); an unknown type safely falls back to the Step-1 picker.
   const type = isQRType(params.type) ? params.type : null;
-  const step = parseStep(params.step, type);
+  const step = resolveWizardStep(params.step, type !== null);
 
   return <QRBuilder initialType={type} initialStep={step} />;
 }

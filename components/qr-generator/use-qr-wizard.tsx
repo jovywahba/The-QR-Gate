@@ -18,6 +18,7 @@ import {
 import type { QRContent, QRDesignOptions, QRType, QRWizardState, WizardStep } from "@/lib/qr/types";
 import { publishQR, UploadError } from "@/lib/qr/uploads-client";
 import { validateContent, type ContentValidation } from "@/lib/qr/validation";
+import { resolveWizardStep } from "@/lib/qr/wizard-url";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -341,9 +342,10 @@ export function QRWizardProvider({
       const params = new URLSearchParams(window.location.search);
       const rawType = params.get("type");
       const type = isQRType(rawType) ? rawType : null;
-      const rawStep = Number(params.get("step"));
-      const step: WizardStep =
-        rawStep === 2 || rawStep === 3 || rawStep === 4 ? (rawStep as WizardStep) : 1;
+      // Same resolution as the /create server route so a deep link and a
+      // Back/Forward to the same URL land on the same step (a chosen type
+      // with no explicit ?step= means Step 2, never the type grid).
+      const step = resolveWizardStep(params.get("step"), type !== null);
       setState((prev) => ({
         ...prev,
         selectedType: type ?? prev.selectedType,

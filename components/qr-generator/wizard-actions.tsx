@@ -60,7 +60,11 @@ function StartOverButton({ label = "Start over" }: { label?: string }) {
 }
 
 export function WizardActions() {
-  const { state, validation, goToStep, continueFrom } = useQRWizard();
+  const { state, validation, goToStep, continueFrom, user, authReady } = useQRWizard();
+  // Downloading is account-gated (a free account; it also anchors the QR to an
+  // owner + the free quota). Say so BEFORE Step 4 so the sign-in redirect after
+  // "Continue" is never a surprise — the design is saved and the user returns.
+  const needsAccount = authReady && !user;
 
   if (state.step === 1) {
     return (
@@ -98,12 +102,19 @@ export function WizardActions() {
             <ArrowLeft aria-hidden />
             Back
           </Button>
-          <div className="flex items-center gap-2">
-            <StartOverButton />
-            <Button type="button" onClick={() => continueFrom(3)}>
-              Continue to Download
-              <ArrowRight aria-hidden />
-            </Button>
+          <div className="flex w-full flex-col items-end gap-2 sm:w-auto">
+            <div className="flex items-center gap-2">
+              <StartOverButton />
+              <Button type="button" onClick={() => continueFrom(3)}>
+                {needsAccount ? "Sign in to download" : "Continue to Download"}
+                <ArrowRight aria-hidden />
+              </Button>
+            </div>
+            {needsAccount ? (
+              <p className="text-right text-xs text-muted-foreground">
+                Downloading needs a free account — your design is saved and you&apos;ll come right back.
+              </p>
+            ) : null}
           </div>
         </>
       )}

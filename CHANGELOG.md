@@ -11,6 +11,27 @@ Format: `YYYY-MM-DD · [design vX.Y | template] what changed · backport? (which
 - 2026-06-17 · [template] Initial scaffold built & type-checked (tsc clean): Next 15 + React 19 + Tailwind v4 + shadcn (new-york/stone/0.5rem) wired to Design System v1.0 tokens; Supabase auth (email+password) + RLS migration; Stripe trial Checkout + verified webhook + portal; Resend; marketing site (landing, pricing, alternatives/[slug], about, blog, docs, status, legal) + product shell; Vercel Analytics. `lib/site.ts` is the per-app config seam.
 
 ## App history (The QR Gate — beyond the template)
+- 2026-08-12 · **Close remaining bugs + verification gaps.** (1) **QR-type deep
+  linking fixed** — `/create?type=<id>` now selects the type and opens Step 2 for
+  every registered type (invalid `?type=` falls back to Step 1); root cause was a
+  step-default of 1 in both the server route and the client Back/Forward handler,
+  unified behind a tested `resolveWizardStep()` helper. Live-verified on prod
+  (wifi → Add Content + SSID form; bogus → the 16-type picker). (2) **Download gate
+  is no longer a surprise** — signed-out users see "Sign in to download" + a
+  "your design is saved, you'll come right back" note on Step 3 (the account gate
+  itself is a deliberate, unchanged product choice). (3) **Privacy authoring note
+  removed** — the visible "Review note" ("legal entity … should be confirmed …
+  reviewed by counsel") is gone; Terms keeps honest generic governing-law/refund
+  clauses. (4) **Auth-email audit:** app transactional email (Resend) is **not
+  configured** in prod (`RESEND_API_KEY` absent; `EMAIL_FROM` present) and the code
+  degrades to a **silent no-op** — the UI never claims an email was sent for these;
+  Supabase auth emails are wired (signup `emailRedirectTo`, reset `redirectTo` →
+  `/auth/confirm`) but delivery config lives in the Supabase dashboard (owner check).
+  (5) **Playwright expanded to 50 passing** (deep links ×6 + invalid, Step-1 empty
+  state, public auth pages, protected-route redirect restoration) **+ 4 auth-gated
+  tests scaffolded** behind `AUTH_STATE` (skip without a seeded session). 373 unit
+  tests, tsc/lint/security/build green. **Still blocked (no auth):** signed-in
+  dashboard/admin QA, real checkout→webhook→Pro entitlement, auth-email delivery.
 - 2026-08-12 · **Live production browser QA (post-fix verification).** Tested the
   deployed site as a real user (in-page DOM measurement — the pane can't screenshot
   here — which is more precise than eyeballing for these bugs). Confirmed working

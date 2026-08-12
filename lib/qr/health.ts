@@ -50,9 +50,11 @@ function worstContrast(design: QRDesignOptions): number | null {
   return Math.min(...fg.map((c) => contrastRatio(c, design.backgroundColor)));
 }
 
-function statusFor(score: number, safe: boolean): HealthStatus {
+function statusFor(score: number, safe: boolean, hasWarnings: boolean): HealthStatus {
   if (!safe) return "Unsafe";
-  if (score >= 85) return "Excellent";
+  // "Excellent" means nothing to improve — an active warning (e.g. low contrast)
+  // caps it at "Good" even with a high score, so the label matches the advice.
+  if (score >= 85 && !hasWarnings) return "Excellent";
   if (score >= 70) return "Good";
   return "Needs Attention";
 }
@@ -147,7 +149,7 @@ export function qrHealth(
 
   return {
     score,
-    status: statusFor(score, safe),
+    status: statusFor(score, safe, guidance.length > 0),
     safe,
     factors,
     guidance,

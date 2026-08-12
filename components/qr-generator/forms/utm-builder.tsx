@@ -4,6 +4,7 @@ import * as React from "react";
 import { ChevronDown, Tag } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { normalizeUrl } from "@/lib/qr/payloads";
 import { buildUrlWithUtm, hasUtm, parseUtm, UTM_KEYS, UTM_LABELS } from "@/lib/qr/utm";
 import { cn } from "@/lib/utils";
 
@@ -67,7 +68,8 @@ export function UtmBuilder({ url, onUrlChange }: { url: string; onUrlChange: (u:
             ))}
           </div>
           <p className="break-all text-xs text-muted-foreground">
-            Final URL: <span className="font-mono text-foreground">{url || "—"}</span>
+            Final URL:{" "}
+            <span className="font-mono text-foreground">{(url && (normalizeUrl(url) ?? url)) || "—"}</span>
           </p>
         </div>
       ) : null}

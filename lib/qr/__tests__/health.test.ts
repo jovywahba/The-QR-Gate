@@ -22,6 +22,16 @@ describe("qrHealth", () => {
     expect(r.guidance).toEqual([]);
   });
 
+  it("caps the label at Good (not Excellent) when a warning is active", () => {
+    // A mid-gray on white is in the warning contrast band: safe to download,
+    // high score, but with active guidance — so it must NOT read "Excellent".
+    const r = qrHealth({ ...good, foregroundColor: "#999999" }, { payload: "https://x.co/q/abc123" });
+    expect(r.safe).toBe(true);
+    expect(r.score).toBeGreaterThanOrEqual(85);
+    expect(r.guidance.length).toBeGreaterThan(0);
+    expect(r.status).toBe("Good");
+  });
+
   it("flags very low contrast as Unsafe and NOT safe (blocks download)", () => {
     const r = qrHealth({ ...good, foregroundColor: "#EEEEEE" }, { payload: "x" });
     expect(r.safe).toBe(false);

@@ -66,7 +66,7 @@ export function FinalizePanel() {
         <span className="space-y-0.5">
           <span className="block text-sm font-medium">Track scans</span>
           <span className="block text-xs text-muted-foreground">
-            Encodes a {trackingEnabled ? "short link that records each scan, then forwards to your URL" : "your URL directly (no analytics)"}.
+            Encodes {trackingEnabled ? "a short link that records each scan, then forwards to your URL" : "your URL directly (no analytics)"}.
           </span>
         </span>
       </span>

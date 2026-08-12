@@ -59,15 +59,13 @@ function MobilePagePreview() {
         )}
         <span className="text-[11px] font-medium text-muted-foreground">{typeName}</span>
       </div>
-      {/* Step 1 (hover/idle) → the supplied full-screen sample artwork inside
-          the iPhone shell (uncropped, natural aspect). Step 2+ → the user's own
-          content rendered live, scrolling inside the screen. */}
+      {/* ONE phone shell, always mounted (no `key` → it never remounts, so it
+          doesn't "re-appear" on every hover). Step 1 → only the sample IMAGE
+          inside swaps per type; Step 2+ → the user's own live content. */}
       {showSample ? (
         <IPhoneFrame
-          key={previewType}
           image={qrTypePreviewImages[previewType]}
           imageAlt={qrTypePreviewAlt(getQRType(previewType).name)}
-          className="animate-in fade-in-0 duration-200 motion-reduce:animate-none"
         />
       ) : (
         <IPhoneFrame>

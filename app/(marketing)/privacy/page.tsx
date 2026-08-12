@@ -12,15 +12,7 @@ export const metadata: Metadata = { title: "Privacy Policy" };
  */
 export default function PrivacyPage() {
   return (
-    <LegalPage title="Privacy Policy" updated="July 24, 2026">
-      <LegalSection heading="Review note">
-        <p>
-          This policy describes how the Service works today and is provided for transparency. It is
-          not legal advice; the operating legal entity and postal address should be confirmed and this
-          document reviewed by counsel before it is relied upon.
-        </p>
-      </LegalSection>
-
+    <LegalPage title="Privacy Policy" updated="August 12, 2026">
       <LegalSection heading="1. Who we are">
         <p>
           {site.name} (“we,” “us”) is a QR-code generator that lets you create, host, and track QR

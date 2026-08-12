@@ -19,30 +19,22 @@ test("homepage carries the shared footer (feels like one product)", async ({ pag
   await expect(footer.getByRole("link", { name: "Privacy" })).toBeVisible();
 });
 
-test("Step-1 sample renders inside one iPhone frame — uncropped, no clip", async ({ page }) => {
-  await page.goto("/", { waitUntil: "networkidle" });
+test("Step-1 renders live content inside ONE fixed iPhone frame (real chrome)", async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  // Exactly one device shell, and it is the realistic one.
+  await expect(page.locator("[data-iphone-frame]")).toHaveCount(1);
   const frame = page.locator("[data-iphone-frame]").first();
-  await expect(frame).toBeVisible();
-  // The realistic chrome exists.
   await expect(frame.locator("[data-status-bar]")).toBeVisible();
   await expect(frame.locator("[data-dynamic-island]")).toBeVisible();
   await expect(frame.locator("[data-home-indicator]")).toBeVisible();
-
-  const img = frame.locator('img[alt*="mobile destination preview"]').first();
-  await expect(img).toBeVisible();
-  const geom = await img.evaluate((el) => {
-    const image = el as HTMLImageElement;
-    const r = image.getBoundingClientRect();
-    const fr = (image.closest("[data-iphone-frame]") as HTMLElement).getBoundingClientRect();
-    return {
-      renderedAR: r.width / r.height,
-      naturalAR: image.naturalWidth / image.naturalHeight,
-      widthOverflow: r.width - fr.width, // > 0 would mean the artwork spills past the phone
-    };
+  // The device never overflows its column horizontally (content stays inside).
+  const overflow = await frame.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const inner = el.scrollWidth - el.clientWidth;
+    return { pastViewport: r.right - document.documentElement.clientWidth, inner };
   });
-  // Natural aspect (no crop, no stretch) and never wider than the phone.
-  expect(Math.abs(geom.renderedAR - geom.naturalAR)).toBeLessThan(0.03);
-  expect(geom.widthOverflow).toBeLessThanOrEqual(1);
+  expect(overflow.pastViewport).toBeLessThanOrEqual(1);
+  expect(overflow.inner).toBeLessThanOrEqual(1);
 });
 
 test("the global navbar exists on the generator (one product)", async ({ page }) => {

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CreditCard, LayoutDashboard, LogOut, Plus, QrCode, Settings } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -40,6 +41,7 @@ function initials(who: NonNullable<Who>): string {
 
 export function AccountNav({ initialUser }: { initialUser?: HeaderUser }) {
   // Server gave us the authoritative state → start there, already "ready".
+  const router = useRouter();
   const seeded = initialUser !== undefined;
   const [who, setWho] = React.useState<Who>(initialUser ?? null);
   const [ready, setReady] = React.useState(seeded);
@@ -62,13 +64,14 @@ export function AccountNav({ initialUser }: { initialUser?: HeaderUser }) {
             }
           : null,
       );
-    // Only do a blocking initial fetch when the server didn't seed us.
+    // Read the session from the local cookie (no network round-trip → fast),
+    // unless the server already seeded us.
     if (!seeded) {
       supabase.auth
-        .getUser()
+        .getSession()
         .then(({ data }) => {
           if (!cancelled) {
-            load(data.user);
+            load(data.session?.user ?? null);
             setReady(true);
           }
         })
@@ -76,13 +79,20 @@ export function AccountNav({ initialUser }: { initialUser?: HeaderUser }) {
           if (!cancelled) setReady(true);
         });
     }
-    // Keep the header in sync with live sign-in / sign-out (no reload).
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => load(session?.user ?? null));
+    // Keep the header in sync with live sign-in / sign-out, and on a real
+    // transition refresh the server components so the whole app updates
+    // without the user having to reload the page manually.
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      load(session?.user ?? null);
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
+        router.refresh();
+      }
+    });
     return () => {
       cancelled = true;
       sub.subscription.unsubscribe();
     };
-  }, [configured, seeded]);
+  }, [configured, seeded, router]);
 
   // Genuinely loading (no server seed): a neutral avatar-sized placeholder —
   // NEVER the signed-out buttons (which would flash "Sign in").

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { QRBuilder } from "@/components/qr-generator/qr-builder-layout";
-import { getHeaderUser } from "@/lib/auth/current-user";
 import { site } from "@/lib/site";
 
 /**
@@ -12,7 +11,6 @@ export const metadata: Metadata = {
   description: site.description,
 };
 
-export default async function HomePage() {
-  const initialUser = await getHeaderUser();
-  return <QRBuilder initialUser={initialUser} />;
+export default function HomePage() {
+  return <QRBuilder />;
 }

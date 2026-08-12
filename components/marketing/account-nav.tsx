@@ -146,7 +146,10 @@ export function AccountNav() {
       <Button size="sm" asChild>
         <Link href="/">
           <Plus aria-hidden />
-          Create QR Code
+          {/* Narrow phones (≤ ~400px) show the short label so the header
+              never overflows horizontally; roomier viewports get the full CTA. */}
+          <span className="min-[400px]:hidden">Create</span>
+          <span className="hidden min-[400px]:inline">Create QR Code</span>
         </Link>
       </Button>
     </div>

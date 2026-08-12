@@ -52,6 +52,12 @@ function BuilderShell() {
               it otherwise, so the header never overflows on smaller desktops. */}
           <QRStepper className="hidden xl:block" />
           <div className="flex items-center gap-1">
+            {/* Marketing links surface on roomier viewports so the tool and
+                the marketing site feel like one product; the shared footer
+                carries the full nav on every screen. */}
+            <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
+              <Link href="/pricing">Pricing</Link>
+            </Button>
             <Button variant="ghost" size="sm" asChild>
               <Link href="/docs">
                 <CircleHelp aria-hidden />

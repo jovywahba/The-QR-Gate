@@ -10,6 +10,8 @@ import { MobileDestination } from "@/components/qr-preview/screens";
 import { getQRType, QR_TYPES } from "@/lib/qr/registry";
 import {
   DEFAULT_PREVIEW_TYPE,
+  QR_TYPE_PREVIEW_HEIGHT,
+  QR_TYPE_PREVIEW_WIDTH,
   qrTypePreviewAlt,
   qrTypePreviewImages,
 } from "@/lib/qr/type-previews";
@@ -34,16 +36,22 @@ const QRRenderer = dynamic(() => import("./qr-renderer"), {
 });
 
 /**
- * Step-1 sample phone. A compact iPhone-proportioned shell (9 : 19.5)
- * with an Apple-style Dynamic Island. Each supplied image FILLS the
- * screen (object-cover, anchored to the top) so there's no empty band
- * below it and nothing scrolls. All 16 are mounted and eagerly loaded,
- * then cross-faded by opacity, so hovering between cards is instant.
+ * Step-1 sample phone. A phone-styled shell with an Apple-style Dynamic
+ * Island. The shell's aspect ratio matches the supplied artwork exactly
+ * (QR_TYPE_PREVIEW_WIDTH : QR_TYPE_PREVIEW_HEIGHT), so each image fills
+ * the screen edge-to-edge with NO cropping and NO empty band — object-cover
+ * then only absorbs sub-pixel rounding. (Previously the shell was a fixed
+ * 9:19.5, taller than the 9:16 artwork, so cover silently cropped ~20% off
+ * the sides of every type.) All 16 are mounted and eagerly loaded, then
+ * cross-faded by opacity, so hovering between cards is instant.
  */
 function StaticPhone({ type }: { type: QRType }) {
   return (
     <div className="mx-auto w-[230px] xl:w-[250px]">
-      <div className="relative aspect-[9/19.5] w-full overflow-hidden rounded-[46px] border-[7px] border-[#20212B] bg-black shadow-[0_18px_45px_rgba(27,27,47,0.18)]">
+      <div
+        className="relative w-full overflow-hidden rounded-[42px] border-[7px] border-[#20212B] bg-black shadow-[0_18px_45px_rgba(27,27,47,0.18)]"
+        style={{ aspectRatio: `${QR_TYPE_PREVIEW_WIDTH} / ${QR_TYPE_PREVIEW_HEIGHT}` }}
+      >
         {/* Screen — the supplied artwork covers it edge to edge. */}
         <div className="absolute inset-0 overflow-hidden rounded-[inherit] bg-white">
           {QR_TYPES.map((definition) => {

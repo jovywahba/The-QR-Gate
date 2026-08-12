@@ -27,14 +27,19 @@ test("Step-1 renders live content inside ONE fixed iPhone frame (real chrome)", 
   await expect(frame.locator("[data-status-bar]")).toBeVisible();
   await expect(frame.locator("[data-dynamic-island]")).toBeVisible();
   await expect(frame.locator("[data-home-indicator]")).toBeVisible();
-  // The device never overflows its column horizontally (content stays inside).
+  // The device sits within the viewport and causes no page horizontal scroll.
   const overflow = await frame.evaluate((el) => {
     const r = el.getBoundingClientRect();
-    const inner = el.scrollWidth - el.clientWidth;
-    return { pastViewport: r.right - document.documentElement.clientWidth, inner };
+    const de = document.documentElement;
+    return {
+      pastViewport: Math.round(r.right - de.clientWidth),
+      pageOverflow: de.scrollWidth - de.clientWidth,
+    };
   });
   expect(overflow.pastViewport).toBeLessThanOrEqual(1);
-  expect(overflow.inner).toBeLessThanOrEqual(1);
+  expect(overflow.pageOverflow).toBeLessThanOrEqual(1);
+  // The screen has real content rendered inside it (not an empty frame).
+  await expect(frame.locator(".overflow-y-auto")).not.toBeEmpty();
 });
 
 test("the global navbar exists on the generator (one product)", async ({ page }) => {

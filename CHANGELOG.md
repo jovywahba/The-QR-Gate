@@ -11,6 +11,25 @@ Format: `YYYY-MM-DD · [design vX.Y | template] what changed · backport? (which
 - 2026-06-17 · [template] Initial scaffold built & type-checked (tsc clean): Next 15 + React 19 + Tailwind v4 + shadcn (new-york/stone/0.5rem) wired to Design System v1.0 tokens; Supabase auth (email+password) + RLS migration; Stripe trial Checkout + verified webhook + portal; Resend; marketing site (landing, pricing, alternatives/[slug], about, blog, docs, status, legal) + product shell; Vercel Analytics. `lib/site.ts` is the per-app config seam.
 
 ## App history (The QR Gate — beyond the template)
+- 2026-08-12 · **Live production browser QA (post-fix verification).** Tested the
+  deployed site as a real user (in-page DOM measurement — the pane can't screenshot
+  here — which is more precise than eyeballing for these bugs). Confirmed working
+  live: type-select → Step 2 → Step 3, the QR renders (640² canvas, correct 38-char
+  payload), Enlarge preview (960², not blank), and **Stripe Live health is fully OK**
+  (`/api/health/stripe`: live keys, $10/mo USD monthly, product-name match, all true).
+  **Fixed three real bugs found live:** (1) the Step-1 mobile sample previews were
+  cropped for **all 16 types** (not just the 3 the earlier audit named) — the sample
+  phone shell was a fixed 9:19.5 while every supplied image is 941×1672 (9:16), so
+  `object-cover` shaved ~20% off the sides; now the shell's aspect is driven from the
+  artwork dimensions (crop delta 0.12 → 0.013, verified live). (2) The homepage (which
+  *is* the generator) had **no footer and a tool-only header** — added a `(generator)`
+  layout with the shared `SiteFooter` + a Pricing link in the wizard header, so it
+  reads as one product. (3) The header **overflowed 8px at 320px** — the CTA now uses
+  a short "Create" label under ~400px. New `e2e/generator.spec.ts` guards all three.
+  **35 Playwright tests pass against production**; tsc/lint clean, 368 unit tests,
+  build green, verify:security PASS. **Blocked (unchanged):** sign-in-gated
+  dashboard/admin/checkout-completion and auth-email delivery — the agent can't
+  authenticate or create accounts.
 - 2026-08-12 · **Production QA pass — public-facing repair (P0/P1/P2).** Acting on a
   real production audit. **Killed every public template-residue leak** (the biggest
   trust problem): removed the "$120→$60 half-the-price" comparison story, the fake

@@ -224,12 +224,14 @@
   wizard copy/logic bugs (grammar, UTM https preview, QR Health "Excellent" cap).
   New `e2e/marketing.spec.ts`. **Still open (owner or larger effort):**
   (1) **email not configured** — Resend/SMTP unset, so password-reset + email-confirm
-  can't send; configure Resend or show an honest unavailable state. (2) **Static-sample
-  mobile-preview cropping** — the Step-1 sample screenshots are `object-cover`-cropped;
-  the real fix is rendering live destination components instead of static images.
-  (3) **Unified homepage shell** — the generator homepage has its own header and no
-  footer; give it the global nav + footer. (4) **Docs "email us" link** — make the
-  support email a real `mailto:`. (5) **Sign-in-gated QA** (dashboard/admin/payment,
+  can't send; configure Resend/Supabase SMTP (see the live-QA report). (2) ~~Static-sample
+  mobile-preview cropping~~ — **FIXED 2026-08-12** (live QA): it was a shell/artwork
+  aspect mismatch, not the images; the sample phone now takes its aspect from the
+  941×1672 artwork, so all 16 types show uncropped (supplied static images kept — no
+  external embeds on the landing page). (3) ~~Unified homepage shell~~ — **FIXED
+  2026-08-12**: the generator homepage now renders the shared `SiteFooter` + a Pricing
+  link in the header. (4) ~~Docs "email us" link~~ — **resolved**: no plain-text email
+  remains in the docs (only the footer `mailto:`). (5) **Sign-in-gated QA** (dashboard/admin/payment,
   incl. the SELEEM promo) — the agent cannot authenticate, so these are owner steps.
   (6) **Legal facts** — name the operating entity + governing-law jurisdiction and have
   counsel review Terms/Privacy.

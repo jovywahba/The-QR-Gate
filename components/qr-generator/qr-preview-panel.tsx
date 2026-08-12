@@ -6,9 +6,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IPhoneFrame } from "@/components/qr-preview/kit";
 import { MobileDestination } from "@/components/qr-preview/screens";
-import { demoFixtureFor } from "@/lib/qr/demo-fixtures";
 import { getQRType } from "@/lib/qr/registry";
-import { DEFAULT_PREVIEW_TYPE } from "@/lib/qr/type-previews";
+import {
+  DEFAULT_PREVIEW_TYPE,
+  qrTypePreviewAlt,
+  qrTypePreviewImages,
+} from "@/lib/qr/type-previews";
 import type { QRType } from "@/lib/qr/types";
 import { useHoveredType } from "./hover-preview";
 import { useQRWizard } from "./use-qr-wizard";
@@ -56,28 +59,26 @@ function MobilePagePreview() {
         )}
         <span className="text-[11px] font-medium text-muted-foreground">{typeName}</span>
       </div>
-      {/* ONE fixed iPhone shell. The device never changes — only the SCREEN
-          content does. Step 1 (hover/idle) → the real demo content for that
-          type renders inside the screen; Step 2+ → the user's own content.
-          (No more swapping a full phone-mockup image, which read as a phone
-          inside a phone.) */}
-      <IPhoneFrame>
-        {showSample ? (
-          <div
-            key={`demo-${previewType}`}
-            className="min-h-full animate-in fade-in-0 duration-200 motion-reduce:animate-none"
-          >
-            <MobileDestination content={demoFixtureFor(previewType)} />
-          </div>
-        ) : (
+      {/* Step 1 (hover/idle) → the supplied full-screen sample artwork inside
+          the iPhone shell (uncropped, natural aspect). Step 2+ → the user's own
+          content rendered live, scrolling inside the screen. */}
+      {showSample ? (
+        <IPhoneFrame
+          key={previewType}
+          image={qrTypePreviewImages[previewType]}
+          imageAlt={qrTypePreviewAlt(getQRType(previewType).name)}
+          className="animate-in fade-in-0 duration-200 motion-reduce:animate-none"
+        />
+      ) : (
+        <IPhoneFrame>
           <div
             key={state.content?.type ?? "empty"}
             className="min-h-full animate-in fade-in-0 slide-in-from-bottom-1 duration-200 motion-reduce:animate-none"
           >
             {state.content && <MobileDestination content={state.content} />}
           </div>
-        )}
-      </IPhoneFrame>
+        </IPhoneFrame>
+      )}
     </div>
   );
 }

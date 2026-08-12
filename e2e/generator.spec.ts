@@ -19,27 +19,30 @@ test("homepage carries the shared footer (feels like one product)", async ({ pag
   await expect(footer.getByRole("link", { name: "Privacy" })).toBeVisible();
 });
 
-test("Step-1 renders live content inside ONE fixed iPhone frame (real chrome)", async ({ page }) => {
-  await page.goto("/", { waitUntil: "domcontentloaded" });
-  // Exactly one device shell, and it is the realistic one.
+test("Step-1 sample renders inside ONE iPhone frame — uncropped, no clip", async ({ page }) => {
+  await page.goto("/", { waitUntil: "networkidle" });
+  // Exactly one device shell, with the realistic chrome.
   await expect(page.locator("[data-iphone-frame]")).toHaveCount(1);
   const frame = page.locator("[data-iphone-frame]").first();
   await expect(frame.locator("[data-status-bar]")).toBeVisible();
   await expect(frame.locator("[data-dynamic-island]")).toBeVisible();
   await expect(frame.locator("[data-home-indicator]")).toBeVisible();
-  // The device sits within the viewport and causes no page horizontal scroll.
-  const overflow = await frame.evaluate((el) => {
-    const r = el.getBoundingClientRect();
-    const de = document.documentElement;
+
+  const img = frame.locator('img[alt*="mobile destination preview"]').first();
+  await expect(img).toBeVisible();
+  const geom = await img.evaluate((el) => {
+    const image = el as HTMLImageElement;
+    const r = image.getBoundingClientRect();
+    const fr = (image.closest("[data-iphone-frame]") as HTMLElement).getBoundingClientRect();
     return {
-      pastViewport: Math.round(r.right - de.clientWidth),
-      pageOverflow: de.scrollWidth - de.clientWidth,
+      renderedAR: image.naturalWidth ? r.width / r.height : 0,
+      naturalAR: image.naturalWidth ? image.naturalWidth / image.naturalHeight : 0,
+      widthOverflow: r.width - fr.width,
     };
   });
-  expect(overflow.pastViewport).toBeLessThanOrEqual(1);
-  expect(overflow.pageOverflow).toBeLessThanOrEqual(1);
-  // The screen has real content rendered inside it (not an empty frame).
-  await expect(frame.locator(".overflow-y-auto")).not.toBeEmpty();
+  // Natural aspect (no crop/stretch), never wider than the phone.
+  expect(Math.abs(geom.renderedAR - geom.naturalAR)).toBeLessThan(0.03);
+  expect(geom.widthOverflow).toBeLessThanOrEqual(1);
 });
 
 test("the global navbar exists on the generator (one product)", async ({ page }) => {

@@ -217,6 +217,23 @@
 ---
 
 ## App notes
+- **Production QA pass (2026-08-12):** removed all public template-residue leaks
+  (fake seat pricing, TODO price, "Incumbent" placeholder, template legal notices) —
+  rewrote `site.ts`/`landing.ts`/`content.ts`, deleted `/alternatives` + comparison
+  table, fixed legal/pricing/about copy, fixed nav+footer dead anchors, and fixed
+  wizard copy/logic bugs (grammar, UTM https preview, QR Health "Excellent" cap).
+  New `e2e/marketing.spec.ts`. **Still open (owner or larger effort):**
+  (1) **email not configured** — Resend/SMTP unset, so password-reset + email-confirm
+  can't send; configure Resend or show an honest unavailable state. (2) **Static-sample
+  mobile-preview cropping** — the Step-1 sample screenshots are `object-cover`-cropped;
+  the real fix is rendering live destination components instead of static images.
+  (3) **Unified homepage shell** — the generator homepage has its own header and no
+  footer; give it the global nav + footer. (4) **Docs "email us" link** — make the
+  support email a real `mailto:`. (5) **Sign-in-gated QA** (dashboard/admin/payment,
+  incl. the SELEEM promo) — the agent cannot authenticate, so these are owner steps.
+  (6) **Legal facts** — name the operating entity + governing-law jurisdiction and have
+  counsel review Terms/Privacy.
+
 - **Step-3 hosted-QR preview + public scan shell (2026-08-01):** the design editor
   always shows a real, scannable QR — hosted/tracked types render a safe owned
   **design-preview payload** (`…/design-preview`, never localhost/fake slug) via

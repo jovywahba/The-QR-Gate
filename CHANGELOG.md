@@ -11,6 +11,31 @@ Format: `YYYY-MM-DD · [design vX.Y | template] what changed · backport? (which
 - 2026-06-17 · [template] Initial scaffold built & type-checked (tsc clean): Next 15 + React 19 + Tailwind v4 + shadcn (new-york/stone/0.5rem) wired to Design System v1.0 tokens; Supabase auth (email+password) + RLS migration; Stripe trial Checkout + verified webhook + portal; Resend; marketing site (landing, pricing, alternatives/[slug], about, blog, docs, status, legal) + product shell; Vercel Analytics. `lib/site.ts` is the per-app config seam.
 
 ## App history (The QR Gate — beyond the template)
+- 2026-08-12 · **Production QA pass — public-facing repair (P0/P1/P2).** Acting on a
+  real production audit. **Killed every public template-residue leak** (the biggest
+  trust problem): removed the "$120→$60 half-the-price" comparison story, the fake
+  seat pricing ($120/$60/$18,000), the `TODO` price label, the "Incumbent"
+  placeholder + empty comparison date, and the "Template document / to be confirmed"
+  legal placeholders — all traced to `lib/site.ts` template residue. Rewrote
+  `lib/site.ts` + `lib/landing.ts` to the real positioning (a $10/mo QR generator,
+  no competitor framing); deleted the `/alternatives` route + `ComparisonTable`;
+  fixed the legal shell (removed the public "template document" notice) and the
+  Terms placeholders (entity / governing-law / refund) into honest, product-accurate
+  copy; rewrote About + Pricing (real single-plan page with a Free + Pro card);
+  enriched the thin Help Center (`content.ts`) into 5 accurate docs and fixed the
+  wrong "free trial" billing copy. **Fixed nav/footer:** header + footer no longer
+  point at dead `/#features`/`/#pricing`/`/#faq` anchors — they link to real pages
+  (`/`, `/pricing`, `/docs`, `/blog`, `/dashboard`, `/status`, support mailto).
+  **Wizard bugs:** grammar "Encodes a your URL" → fixed; the UTM "Final URL" preview
+  now shows the normalized `https://…` it actually encodes; QR Health no longer
+  labels a design "Excellent" while a warning is active (caps at "Good") — with a
+  regression test. Verified the "Enlarge preview" QR renders (960×960, not blank —
+  the audit's blank was the earlier render delay). New Playwright `marketing.spec.ts`
+  guards against the leaks + the retired comparison page. tsc/lint clean, 368 Vitest
+  tests, build green, verify:security PASS. **Honestly NOT done this pass** (blocked
+  or larger): sign-in-gated dashboard/admin/payment testing (can't authenticate),
+  transactional email config, the Step-1 static-sample mobile-preview cropping, and
+  a unified homepage nav/footer shell on the generator — all itemized in PROJECT.md.
 - 2026-08-01 · **Admin Promo Codes.** New `/admin/promo-codes` — an admin can
   create discount codes for The QR Gate Pro (percent or fixed USD; first-payment /
   N-months / forever; optional max-uses + expiry). They're **real Stripe Coupons +

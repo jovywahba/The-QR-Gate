@@ -27,3 +27,8 @@ next-env.d.ts
 /supabase/.branches
 /supabase/.temp
 .env*
+
+# Playwright
+/test-results/
+/playwright-report/
+/e2e-artifacts/

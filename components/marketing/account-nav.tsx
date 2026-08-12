@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { publicSupabaseConfig } from "@/lib/qr/config";
+import type { HeaderUser } from "@/lib/auth/current-user";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -22,6 +23,11 @@ import { createClient } from "@/lib/supabase/client";
  * builder. Logged out → "Sign in" + "Create QR Code". Logged in →
  * an account dropdown (Dashboard · My QR Codes · Billing · Sign out).
  * Never shows Sign in and Sign out at once.
+ *
+ * `initialUser` is resolved SERVER-SIDE and passed in, so the correct
+ * state renders on the very first paint — no signed-out → signed-in flash
+ * on navigation. When it's omitted (undefined), we fall back to a neutral
+ * skeleton (never the signed-out buttons) until the client session loads.
  */
 
 type Who = { email: string; name: string | null; avatarUrl: string | null } | null;
@@ -32,9 +38,11 @@ function initials(who: NonNullable<Who>): string {
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
 }
 
-export function AccountNav() {
-  const [who, setWho] = React.useState<Who>(null);
-  const [ready, setReady] = React.useState(false);
+export function AccountNav({ initialUser }: { initialUser?: HeaderUser }) {
+  // Server gave us the authoritative state → start there, already "ready".
+  const seeded = initialUser !== undefined;
+  const [who, setWho] = React.useState<Who>(initialUser ?? null);
+  const [ready, setReady] = React.useState(seeded);
   const configured = React.useMemo(() => publicSupabaseConfig().configured, []);
 
   React.useEffect(() => {
@@ -54,23 +62,33 @@ export function AccountNav() {
             }
           : null,
       );
-    supabase.auth
-      .getUser()
-      .then(({ data }) => {
-        if (!cancelled) {
-          load(data.user);
-          setReady(true);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setReady(true);
-      });
+    // Only do a blocking initial fetch when the server didn't seed us.
+    if (!seeded) {
+      supabase.auth
+        .getUser()
+        .then(({ data }) => {
+          if (!cancelled) {
+            load(data.user);
+            setReady(true);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setReady(true);
+        });
+    }
+    // Keep the header in sync with live sign-in / sign-out (no reload).
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => load(session?.user ?? null));
     return () => {
       cancelled = true;
       sub.subscription.unsubscribe();
     };
-  }, [configured]);
+  }, [configured, seeded]);
+
+  // Genuinely loading (no server seed): a neutral avatar-sized placeholder —
+  // NEVER the signed-out buttons (which would flash "Sign in").
+  if (!ready) {
+    return <div aria-hidden className="size-8 animate-pulse rounded-full bg-muted" />;
+  }
 
   if (ready && who) {
     return (

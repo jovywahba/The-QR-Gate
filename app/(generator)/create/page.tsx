@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { QRBuilder, type SavedQRRecord } from "@/components/qr-generator/qr-builder-layout";
+import { getHeaderUser } from "@/lib/auth/current-user";
 import { isQRType } from "@/lib/qr/registry";
 import type { QRContent, QRType } from "@/lib/qr/types";
 import { resolveWizardStep } from "@/lib/qr/wizard-url";
@@ -69,11 +70,12 @@ export default async function CreatePage({
   searchParams: Promise<{ type?: string; step?: string; id?: string; new?: string; version?: string }>;
 }) {
   const params = await searchParams;
+  const initialUser = await getHeaderUser();
 
   // /create?new=1 — an intentional fresh start from the dashboard: discard any
   // leftover draft and open Step 1 clean, so a finished QR is never restored.
   if (params.new === "1" && !params.id) {
-    return <QRBuilder initialType={null} initialStep={1} startFresh />;
+    return <QRBuilder initialType={null} initialStep={1} startFresh initialUser={initialUser} />;
   }
 
   if (params.id && /^[0-9a-f-]{36}$/.test(params.id)) {
@@ -97,7 +99,12 @@ export default async function CreatePage({
     // A saved record always has a type, so this never resolves to Step 1.
     const step = resolveWizardStep(params.step, true);
     return (
-      <QRBuilder initialType={loaded.type} initialStep={step} initialRecord={loaded.record} />
+      <QRBuilder
+        initialType={loaded.type}
+        initialStep={step}
+        initialRecord={loaded.record}
+        initialUser={initialUser}
+      />
     );
   }
 
@@ -106,5 +113,5 @@ export default async function CreatePage({
   const type = isQRType(params.type) ? params.type : null;
   const step = resolveWizardStep(params.step, type !== null);
 
-  return <QRBuilder initialType={type} initialStep={step} />;
+  return <QRBuilder initialType={type} initialStep={step} initialUser={initialUser} />;
 }

@@ -1,11 +1,8 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import { CircleHelp } from "lucide-react";
-import { Logo } from "@/components/brand/logo";
-import { AccountNav } from "@/components/marketing/account-nav";
-import { Button } from "@/components/ui/button";
+import { SiteHeader } from "@/components/marketing/site-header";
+import type { HeaderUser } from "@/lib/auth/current-user";
 import type { QRType, WizardStep } from "@/lib/qr/types";
 import { cn } from "@/lib/utils";
 import { HoverPreviewProvider } from "./hover-preview";
@@ -35,7 +32,7 @@ function FocusStepHeading() {
   return null;
 }
 
-function BuilderShell() {
+function BuilderShell({ initialUser }: { initialUser?: HeaderUser }) {
   const { state } = useQRWizard();
   // On Step 3 (design), pin the preview so the QR stays in view and the
   // user watches it update while scrolling the long list of controls.
@@ -45,33 +42,21 @@ function BuilderShell() {
   return (
     <div className="flex min-h-dvh flex-col bg-background">
       <FocusStepHeading />
-      <header className="sticky top-0 z-40 border-b bg-card">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-          <Logo />
-          {/* Full stepper only where there's room; a compact one sits below
-              it otherwise, so the header never overflows on smaller desktops. */}
-          <QRStepper className="hidden xl:block" />
-          <div className="flex items-center gap-1">
-            {/* Marketing links surface on roomier viewports so the tool and
-                the marketing site feel like one product; the shared footer
-                carries the full nav on every screen. */}
-            <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
-              <Link href="/pricing">Pricing</Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/docs">
-                <CircleHelp aria-hidden />
-                <span className="hidden sm:inline">Help</span>
-                <span className="sr-only sm:hidden">Help</span>
-              </Link>
-            </Button>
-            <AccountNav />
+      {/* One global header everywhere; the wizard progress rides in its
+          sub-bar slot so the generator and marketing site are one product. */}
+      <SiteHeader
+        initialUser={initialUser}
+        stepper={
+          <div className="mx-auto max-w-6xl px-4 py-2 sm:px-6">
+            <div className="hidden xl:block">
+              <QRStepper />
+            </div>
+            <div className="xl:hidden">
+              <QRStepper compact />
+            </div>
           </div>
-        </div>
-        <div className="border-t px-4 py-2 xl:hidden">
-          <QRStepper compact />
-        </div>
-      </header>
+        }
+      />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 pb-28 sm:px-6 lg:pb-12">
         <div className="flex items-start gap-8">
@@ -111,11 +96,13 @@ export function QRBuilder({
   initialStep = 1,
   initialRecord,
   startFresh = false,
+  initialUser,
 }: {
   initialType?: QRType | null;
   initialStep?: WizardStep;
   initialRecord?: SavedQRRecord;
   startFresh?: boolean;
+  initialUser?: HeaderUser;
 }) {
   return (
     <QRWizardProvider
@@ -125,7 +112,7 @@ export function QRBuilder({
       startFresh={startFresh}
     >
       <HoverPreviewProvider>
-        <BuilderShell />
+        <BuilderShell initialUser={initialUser} />
       </HoverPreviewProvider>
     </QRWizardProvider>
   );

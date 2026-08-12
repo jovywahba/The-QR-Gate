@@ -40,12 +40,12 @@ const QRRenderer = dynamic(() => import("./qr-renderer"), {
 
 function StepHeading({ children, sub }: { children: React.ReactNode; sub?: string }) {
   return (
-    <header className="mb-6 space-y-1">
+    <div className="mb-6 space-y-1">
       <h1 id="qr-step-heading" tabIndex={-1} className="text-2xl font-semibold tracking-tight outline-none">
         {children}
       </h1>
       {sub && <p className="text-sm text-muted-foreground">{sub}</p>}
-    </header>
+    </div>
   );
 }
 

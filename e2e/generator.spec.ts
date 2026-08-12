@@ -19,23 +19,44 @@ test("homepage carries the shared footer (feels like one product)", async ({ pag
   await expect(footer.getByRole("link", { name: "Privacy" })).toBeVisible();
 });
 
-test("Step-1 sample preview is not cropped (shell aspect matches the artwork)", async ({ page }) => {
+test("Step-1 sample renders inside one iPhone frame — uncropped, no clip", async ({ page }) => {
   await page.goto("/", { waitUntil: "networkidle" });
-  const img = page.locator('img[alt*="mobile destination preview"]').first();
+  const frame = page.locator("[data-iphone-frame]").first();
+  await expect(frame).toBeVisible();
+  // The realistic chrome exists.
+  await expect(frame.locator("[data-status-bar]")).toBeVisible();
+  await expect(frame.locator("[data-dynamic-island]")).toBeVisible();
+  await expect(frame.locator("[data-home-indicator]")).toBeVisible();
+
+  const img = frame.locator('img[alt*="mobile destination preview"]').first();
   await expect(img).toBeVisible();
   const geom = await img.evaluate((el) => {
     const image = el as HTMLImageElement;
     const r = image.getBoundingClientRect();
+    const fr = (image.closest("[data-iphone-frame]") as HTMLElement).getBoundingClientRect();
     return {
       renderedAR: r.width / r.height,
       naturalAR: image.naturalWidth / image.naturalHeight,
-      objectFit: getComputedStyle(image).objectFit,
+      widthOverflow: r.width - fr.width, // > 0 would mean the artwork spills past the phone
     };
   });
-  // The rendered box must share the image's own aspect ratio, so `cover`
-  // fills it with nothing clipped. (Before the fix: box ≈ 0.462 vs image
-  // ≈ 0.563 → ~20% of the width was cropped.)
+  // Natural aspect (no crop, no stretch) and never wider than the phone.
   expect(Math.abs(geom.renderedAR - geom.naturalAR)).toBeLessThan(0.03);
+  expect(geom.widthOverflow).toBeLessThanOrEqual(1);
+});
+
+test("the global navbar exists on the generator (one product)", async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  const header = page.locator("header").first();
+  await expect(header.getByRole("link", { name: "QR Generator" })).toBeVisible();
+  await expect(header.getByRole("link", { name: "Pricing" })).toBeVisible();
+});
+
+test("Pricing navigates from the generator header", async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.locator("header").getByRole("link", { name: "Pricing" }).click();
+  await expect(page).toHaveURL(/\/pricing$/);
+  await expect(page.getByRole("heading", { name: /one simple plan/i })).toBeVisible();
 });
 
 test("homepage has no horizontal overflow at 320px", async ({ page }) => {

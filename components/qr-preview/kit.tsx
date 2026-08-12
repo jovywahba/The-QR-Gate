@@ -17,16 +17,68 @@ import { cn } from "@/lib/utils";
  *  Tuned to a real iPhone ~19.5:9 aspect ratio for the tall silhouette. */
 export const SCREEN_HEIGHT = 564;
 
-/** A premium iPhone-style shell: titanium rail, side buttons, dynamic
- *  island, frosted status bar, clipped screen with internal scroll, and
- *  a bottom home indicator.
- *
- *  `bare` drops the status bar, island and home indicator. Use it when
- *  the child is already a COMPLETE screen design (the supplied Step-1
- *  artwork), so our chrome never duplicates theirs or covers content. */
-export function PhoneFrame({ children, bare = false }: { children: React.ReactNode; bare?: boolean }) {
+/** Live "current-looking" status-bar clock. Starts at Apple's 9:41 so
+ *  server + client first paint match (no hydration mismatch), then swaps
+ *  to the real local time on mount and ticks each minute. */
+function useStatusClock(): string {
+  const [label, setLabel] = React.useState("9:41");
+  React.useEffect(() => {
+    const fmt = () =>
+      new Date()
+        .toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+        .replace(/\s*[AaPp][Mm]$/, "");
+    setLabel(fmt());
+    const id = setInterval(() => setLabel(fmt()), 20_000);
+    return () => clearInterval(id);
+  }, []);
+  return label;
+}
+
+/** The iOS status bar: current-looking time + cellular / Wi-Fi / battery. */
+function StatusBar() {
+  const clock = useStatusClock();
   return (
-    <div className="relative mx-auto w-full max-w-[276px]">
+    <div
+      data-status-bar
+      className="pointer-events-none absolute inset-x-0 top-0 z-20 flex h-11 items-center justify-between bg-background/55 px-5 pt-1.5 backdrop-blur-md"
+    >
+      <span className="font-mono text-[12px] font-semibold tracking-tight text-foreground tabular-nums">
+        {clock}
+      </span>
+      <span className="flex items-center gap-1 text-foreground" aria-hidden>
+        <Signal className="size-3.5" />
+        <Wifi className="size-3.5" />
+        <BatteryFull className="size-4" />
+      </span>
+    </div>
+  );
+}
+
+/**
+ * The one reusable iPhone shell — titanium rail, side buttons, Dynamic
+ * Island, live iOS status bar, and a bottom home indicator. Used EVERYWHERE
+ * a mobile preview is shown so Step-1 and Step-2+ read as the same device.
+ *
+ * Two content modes:
+ *  - `children` → a live destination screen rendered into a fixed-height
+ *    screen that scrolls internally (long content scrolls naturally).
+ *  - `image` → a full-screen sample screenshot. The screen height follows
+ *    the artwork's own aspect ratio, so it fills edge-to-edge with NO crop
+ *    and NO empty band; the status bar sits over the artwork's clean top.
+ */
+export function IPhoneFrame({
+  children,
+  image,
+  imageAlt = "",
+  className,
+}: {
+  children?: React.ReactNode;
+  image?: string;
+  imageAlt?: string;
+  className?: string;
+}) {
+  return (
+    <div data-iphone-frame className={cn("relative mx-auto w-full max-w-[276px]", className)}>
       {/* Side buttons (titanium rails) — the iPhone silhouette. */}
       <span aria-hidden className="absolute top-[92px] -left-[2px] h-7 w-[3px] rounded-l-sm bg-foreground/55" />
       <span aria-hidden className="absolute top-[136px] -left-[2px] h-12 w-[3px] rounded-l-sm bg-foreground/55" />
@@ -36,42 +88,41 @@ export function PhoneFrame({ children, bare = false }: { children: React.ReactNo
       {/* Titanium frame. */}
       <div className="relative rounded-[3rem] bg-gradient-to-b from-foreground/95 via-foreground to-foreground/95 p-[7px] shadow-[0_28px_60px_-24px_rgba(0,0,0,0.5)] ring-1 ring-foreground/20">
         <div className="relative overflow-hidden rounded-[2.5rem] bg-background ring-1 ring-black/10">
-          {!bare && (
-            <>
-              {/* Frosted status bar (readable over any screen content). */}
-              <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex h-11 items-center justify-between bg-background/45 px-5 pt-2 backdrop-blur-md">
-                <span className="font-mono text-[11px] font-semibold text-foreground">9:41</span>
-                <span className="flex items-center gap-1 text-foreground" aria-hidden>
-                  <Signal className="size-3.5" />
-                  <Wifi className="size-3.5" />
-                  <BatteryFull className="size-4" />
-                </span>
-              </div>
-              {/* Dynamic island. */}
-              <div
-                aria-hidden
-                className="absolute top-[9px] left-1/2 z-30 h-[24px] w-[86px] -translate-x-1/2 rounded-full bg-foreground shadow-inner"
-              />
-            </>
-          )}
-          {/* Screen — internal scroll, scrollbar hidden. */}
+          <StatusBar />
+          {/* Dynamic island. */}
           <div
-            className="overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            style={{ height: SCREEN_HEIGHT }}
-          >
-            {children}
-          </div>
-          {!bare && (
-            /* Home indicator with a soft scrim so it stays legible. */
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center bg-gradient-to-t from-background/90 to-transparent pt-6 pb-2.5">
-              <span aria-hidden className="h-1 w-24 rounded-full bg-foreground/45" />
+            aria-hidden
+            data-dynamic-island
+            className="absolute top-[9px] left-1/2 z-30 h-[24px] w-[86px] -translate-x-1/2 rounded-full bg-foreground shadow-inner"
+          />
+          {image ? (
+            // Sample artwork: full width, natural aspect → no crop, no band.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={image} alt={imageAlt} className="block w-full select-none" draggable={false} />
+          ) : (
+            /* Live screen — internal scroll, scrollbar hidden. */
+            <div
+              className="overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              style={{ height: SCREEN_HEIGHT }}
+            >
+              {children}
             </div>
           )}
+          {/* Home indicator with a soft scrim so it stays legible. */}
+          <div
+            data-home-indicator
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center bg-gradient-to-t from-background/90 to-transparent pt-6 pb-2.5"
+          >
+            <span aria-hidden className="h-1 w-24 rounded-full bg-foreground/45" />
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+/** Back-compat alias — existing call sites import `PhoneFrame`. */
+export const PhoneFrame = IPhoneFrame;
 
 /* ── Layout primitives ── */
 

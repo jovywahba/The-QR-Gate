@@ -2,21 +2,17 @@
 
 import * as React from "react";
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PhoneFrame } from "@/components/qr-preview/kit";
+import { IPhoneFrame } from "@/components/qr-preview/kit";
 import { MobileDestination } from "@/components/qr-preview/screens";
-import { getQRType, QR_TYPES } from "@/lib/qr/registry";
+import { getQRType } from "@/lib/qr/registry";
 import {
   DEFAULT_PREVIEW_TYPE,
-  QR_TYPE_PREVIEW_HEIGHT,
-  QR_TYPE_PREVIEW_WIDTH,
   qrTypePreviewAlt,
   qrTypePreviewImages,
 } from "@/lib/qr/type-previews";
 import type { QRType } from "@/lib/qr/types";
-import { cn } from "@/lib/utils";
 import { useHoveredType } from "./hover-preview";
 import { useQRWizard } from "./use-qr-wizard";
 
@@ -34,55 +30,6 @@ const QRRenderer = dynamic(() => import("./qr-renderer"), {
   ssr: false,
   loading: () => <Skeleton className="aspect-square w-full rounded-lg" />,
 });
-
-/**
- * Step-1 sample phone. A phone-styled shell with an Apple-style Dynamic
- * Island. The shell's aspect ratio matches the supplied artwork exactly
- * (QR_TYPE_PREVIEW_WIDTH : QR_TYPE_PREVIEW_HEIGHT), so each image fills
- * the screen edge-to-edge with NO cropping and NO empty band — object-cover
- * then only absorbs sub-pixel rounding. (Previously the shell was a fixed
- * 9:19.5, taller than the 9:16 artwork, so cover silently cropped ~20% off
- * the sides of every type.) All 16 are mounted and eagerly loaded, then
- * cross-faded by opacity, so hovering between cards is instant.
- */
-function StaticPhone({ type }: { type: QRType }) {
-  return (
-    <div className="mx-auto w-[230px] xl:w-[250px]">
-      <div
-        className="relative w-full overflow-hidden rounded-[42px] border-[7px] border-[#20212B] bg-black shadow-[0_18px_45px_rgba(27,27,47,0.18)]"
-        style={{ aspectRatio: `${QR_TYPE_PREVIEW_WIDTH} / ${QR_TYPE_PREVIEW_HEIGHT}` }}
-      >
-        {/* Screen — the supplied artwork covers it edge to edge. */}
-        <div className="absolute inset-0 overflow-hidden rounded-[inherit] bg-white">
-          {QR_TYPES.map((definition) => {
-            const active = definition.id === type;
-            return (
-              <Image
-                key={definition.id}
-                src={qrTypePreviewImages[definition.id]}
-                alt={active ? qrTypePreviewAlt(definition.name) : ""}
-                aria-hidden={!active}
-                fill
-                sizes="254px"
-                // All eagerly loaded so switching is instant, no flash.
-                {...(definition.id === DEFAULT_PREVIEW_TYPE ? { priority: true } : { loading: "eager" as const })}
-                className={cn(
-                  "object-cover object-top transition-opacity duration-200 ease-out motion-reduce:transition-none",
-                  active ? "opacity-100" : "opacity-0",
-                )}
-              />
-            );
-          })}
-        </div>
-        {/* Dynamic Island — above the artwork, fixed (the screen doesn't scroll). */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute top-2.5 left-1/2 z-30 h-[19px] w-[68px] -translate-x-1/2 rounded-full bg-[#09090B] shadow-sm"
-        />
-      </div>
-    </div>
-  );
-}
 
 function MobilePagePreview() {
   const { state } = useQRWizard();
@@ -112,20 +59,25 @@ function MobilePagePreview() {
         )}
         <span className="text-[11px] font-medium text-muted-foreground">{typeName}</span>
       </div>
-      {/* Step 1 → the compact static sample phone (its own shell, since the
-          image already IS a full screen). Step 2+ → the real interactive
-          destination in the standard phone frame. */}
+      {/* One iPhone shell everywhere. Step 1 → the supplied full-screen sample
+          artwork (image mode: uncropped, natural aspect). Step 2+ → the real
+          interactive destination, scrolling inside the screen. */}
       {showSample ? (
-        <StaticPhone type={previewType} />
+        <IPhoneFrame
+          key={previewType}
+          image={qrTypePreviewImages[previewType]}
+          imageAlt={qrTypePreviewAlt(getQRType(previewType).name)}
+          className="animate-in fade-in-0 duration-200 motion-reduce:animate-none"
+        />
       ) : (
-        <PhoneFrame>
+        <IPhoneFrame>
           <div
             key={state.content?.type ?? "empty"}
             className="min-h-full animate-in fade-in-0 slide-in-from-bottom-1 duration-200 motion-reduce:animate-none"
           >
             {state.content && <MobileDestination content={state.content} />}
           </div>
-        </PhoneFrame>
+        </IPhoneFrame>
       )}
     </div>
   );
